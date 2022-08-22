@@ -90,7 +90,12 @@ export class Player {
 			const isSame = !!this.upcoming && (!this.upcoming.audioResource || song.youtubeId !== this.upcoming.youtubeId)
 			this.upcoming = song
 			if (!isSame) {
-				await this.upcoming.generateAudioResource()
+				const isGenerated = await this.upcoming.generateAudioResource()
+				if (!isGenerated) {
+					await this.removeByYtId(this.upcoming.youtubeId)
+					this.upcoming = undefined
+					return await this.genUpcoming(false, currentYoutubeId)
+				}
 			}
 
 			return true
@@ -104,7 +109,12 @@ export class Player {
 		const r = await request('/np')
 		if (r.isOk() && r.data) {
 			this.nowPlaying = new Song(r.data)
-			await this.nowPlaying.generateAudioResource()
+			const isGenerated = await this.nowPlaying.generateAudioResource()
+			if (!isGenerated) {
+				await this.removeByYtId(this.nowPlaying.youtubeId)
+				this.nowPlaying = undefined
+				this.restoreNowPlaying().then()
+			}
 			return true
 		}
 
@@ -166,10 +176,15 @@ export class Player {
 				return
 			}
 
+			if (!this.nowPlaying) {
+				await this.sendMsg('Error, the song not loaded!')
+				return
+			}
+
 			this.join()
 			this.nowPlaying = hasRestored ? this.nowPlaying : this.upcoming
-			this.PLAYER.play(this.nowPlaying.audioResource)
 			console.log('NOW PLAYING', this.nowPlaying)
+			this.PLAYER.play(this.nowPlaying.audioResource)
 			this.upcoming = null
 			this.attempt = 0
 			this.timestamp = (new Date()).getTime()
