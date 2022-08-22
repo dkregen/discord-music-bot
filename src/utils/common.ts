@@ -83,7 +83,7 @@ export function embedPlaylist(songs: Array<Song>): { msg: string, embed: EmbedBu
 	let embed = new EmbedBuilder()
 		.setDescription(text)
 
-	return { msg: 'Load playlist. Type `/set clear` to wipe out the playlist', embed }
+	return { msg: 'Upcoming Playlist. Type `/set clear` to wipe out the playlist', embed }
 }
 
 export async function request(uri: string, params?: any): Promise<Res> {

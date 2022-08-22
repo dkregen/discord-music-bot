@@ -93,9 +93,9 @@ export default class PlaylistManager {
 
 	public async nextSong(npId: string) {
 		try {
-			if(npId === this.npIdCache) {
+			if (npId === this.npIdCache) {
 				this.attempt++
-				if(this.attempt > 50) {
+				if (this.attempt > 50) {
 					this.delete(npId)
 					this.attempt = 0
 				}
@@ -140,6 +140,9 @@ export default class PlaylistManager {
 			let q
 			if (isValidHttpUrl(query)) {
 				q = await ytMetadata(query)
+				if (!q) {
+					return err('Only youtube video link is supported currently. Youtube music and spotify link is coming soon!')
+				}
 			} else {
 				q = await ytSearch(query)
 			}
@@ -200,7 +203,7 @@ export default class PlaylistManager {
 	}
 
 	public showUpcoming(): Res {
-		return d(this.getUsedList())
+		return d([...this.queues, ...this.playlist, ...this.autoplay])
 	}
 
 	public async setPlaylist(link: string): Promise<Res> {

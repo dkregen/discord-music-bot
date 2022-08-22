@@ -20,6 +20,7 @@ export class Player {
 	private status: 'playing' | 'paused' | 'stopped' = 'stopped'
 	private isConnected: boolean
 	private attempt: number
+	private playlist: Array<Song>
 
 	constructor(
 		private channel: any,
@@ -77,7 +78,7 @@ export class Player {
 			await sleep(10000)
 		}
 
-		const r = await request('/up-next', { youtubeId: this.nowPlaying.youtubeId })
+		const r = await request('/up-next', { youtubeId: this.nowPlaying ? this.nowPlaying.youtubeId : '' })
 		if (r.isOk() && r.data) {
 			const song = new Song(r.data)
 			const isSame = !!this.upcoming && (!this.upcoming.audioResource || song.youtubeId !== this.upcoming.youtubeId)
@@ -126,7 +127,7 @@ export class Player {
 
 			hasUpcoming = !!this.upcoming
 			if (!hasRestored && !hasUpcoming) {
-				await this.sendMsg('Song not loaded! Please add a song using command `/a your-keyword-or-youtube-url-here`')
+				await this.sendMsg('Song not loaded! Please add a song using command `/a your keyword or video link`')
 				return
 			}
 
@@ -217,6 +218,11 @@ export class Player {
 			const id = interaction.user.id
 			const avatar = interaction.user.avatar
 			const r = await request('/add', { query, username, id, avatar })
+			if (r.status === 'error') {
+				await this.sendMsg(r.message, interaction)
+				return
+			}
+
 			const song = new Song(r.data)
 			const embed = embedAddedSong(song, r.message)
 			await this.sendEmbedMsg(embed, 'Added a song to the playlist.', interaction)
@@ -236,6 +242,11 @@ export class Player {
 
 	public async printNowPlaying(interaction: any) {
 		try {
+			if (!this.nowPlaying) {
+				await this.sendMsg('Current song is not available!', interaction)
+				return
+			}
+
 			const embed = embedNowPlaying(this.nowPlaying)
 			await this.sendEmbedMsg(embed, 'This song is playing right now.', interaction)
 		} catch (e) {
@@ -248,6 +259,7 @@ export class Player {
 		try {
 			const r = await request('/upcoming')
 			if (r.isOk()) {
+				this.playlist = r.data
 				const data = embedPlaylist(r.data)
 				await this.sendEmbedMsg(data.embed, data.msg, interaction, true)
 			} else {
@@ -262,8 +274,20 @@ export class Player {
 	public async removeFromPlaylist(interaction: any) {
 		try {
 			const index = interaction.options.getInteger('index')
-			const r = await request('/rm', { index })
-			await this.sendMsg(r.message, interaction)
+			const msg = 'Please input a correct index! You can find the index by running command `/u`.'
+			if (!this.playlist || !index || this.playlist.length <= index) {
+				await this.sendMsg(msg, interaction)
+				return
+			}
+
+			const song = this.playlist[ index - 1 ]
+			if (!song.youtubeId) {
+				await this.sendMsg(msg, interaction)
+				return
+			}
+
+			await this.removeByYtId(song.youtubeId)
+			await this.sendMsg(song.title + ' removed from the playlist', interaction)
 		} catch (e) {
 			console.error(e)
 			await this.sendMsg('Cannot connect to the server!', interaction)

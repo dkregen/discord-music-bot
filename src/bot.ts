@@ -3,8 +3,6 @@ import { REST } from '@discordjs/rest'
 import { Player } from './utils/player'
 
 const VOICE_CHANNEL_ID = process.env.GROUP_VOICE_CHANNEL_ID || ''
-const PREFIX = process.env.BOT_PREFIX || '!'
-const MESSAGE_CHANNEL_ID = process.env.GROUP_MESSAGE_CHANNEL_ID || ''
 const ADMIN_ID = process.env.GROUP_ADMIN_ID
 
 const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN || '')
