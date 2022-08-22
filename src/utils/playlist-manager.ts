@@ -131,7 +131,7 @@ export default class PlaylistManager {
 		return np ? d(np) : err('Empty list.')
 	}
 
-	public async add(query: string, username: string, id: string, avatar: string): Promise<Res> {
+	public async add(query: string, username: string, id: string, avatar: string, nowPlayingId: string): Promise<Res> {
 		try {
 			if (!query || query === '') {
 				return err('Cannot add the song. Please provide keywords or Youtube URL!')
@@ -159,8 +159,9 @@ export default class PlaylistManager {
 			}
 
 			this.queues.push(q)
-			const n = this.getUsedList().length - 2
-			const msg = n <= 0 ? '`Up next.`' : '`' + n + ' song' + (n > 1 ? 's' : '') + ' away.`'
+			const list = this.getUsedList()
+			const n = list.length - (!!list && list.length > 1 && list[ 0 ].youtubeId === nowPlayingId ? 1 : 0)
+			const msg = n <= 1 ? '`Up next.`' : '`' + (n - 1) + ' song' + (n > 2 ? 's' : '') + ' away.`'
 			this.autoplay = []
 			return s(msg, q)
 
@@ -202,8 +203,13 @@ export default class PlaylistManager {
 		return d({ length: this.maxLength })
 	}
 
-	public showUpcoming(): Res {
-		return d([...this.queues, ...this.playlist, ...this.autoplay])
+	public showUpcoming(nowPlayingId: string): Res {
+		const arr = [...this.queues, ...this.playlist, ...this.autoplay]
+		if (arr.length > 0 && arr[ 0 ].youtubeId === nowPlayingId) {
+			arr.splice(0, 1)
+		}
+
+		return d(arr)
 	}
 
 	public async setPlaylist(link: string): Promise<Res> {

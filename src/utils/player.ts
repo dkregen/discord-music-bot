@@ -73,9 +73,13 @@ export class Player {
 		}
 	}
 
-	private async genUpcoming(isSleep?: boolean) {
+	private async genUpcoming(isSleep?: boolean, currentYoutubeId?: string) {
 		if (isSleep) {
 			await sleep(10000)
+		}
+
+		if(currentYoutubeId && !!this.nowPlaying && this.nowPlaying.youtubeId !== currentYoutubeId) {
+			return
 		}
 
 		const r = await request('/up-next', { youtubeId: this.nowPlaying ? this.nowPlaying.youtubeId : '' })
@@ -127,42 +131,36 @@ export class Player {
 
 			hasUpcoming = !!this.upcoming
 			if (!hasRestored && !hasUpcoming) {
+				console.log('Job finished')
+				this.status = 'stopped'
+				await request('/set-status', { status: this.status })
 				await this.sendMsg('Song not loaded! Please add a song using command `/a your keyword or video link`')
 				return
 			}
 
-			console.log(this.nowPlaying, this.upcoming)
-			if (hasUpcoming || hasRestored) {
-				this.join()
-				this.nowPlaying = hasRestored ? this.nowPlaying : this.upcoming
-				this.PLAYER.play(this.nowPlaying.audioResource)
-				console.log('NOW PLAYING', this.nowPlaying)
-				this.upcoming = null
-				this.attempt = 0
+			this.join()
+			this.nowPlaying = hasRestored ? this.nowPlaying : this.upcoming
+			this.PLAYER.play(this.nowPlaying.audioResource)
+			console.log('NOW PLAYING', this.nowPlaying)
+			this.upcoming = null
+			this.attempt = 0
 
-				let msg1
-				let msg2
-				if (isSkip) {
-					msg1 = `Skipped, ${ this.cache ? this.cache.title : 'a song' }. Next!`
-					msg2 = `Now Playing, **${ this.nowPlaying.title }** ${ this.nowPlaying.requestBy ? 'requested by ' + this.nowPlaying.requestBy.name : '' }`
-				} else {
-					msg1 = 'Connection with Youtube successfully restored.'
-					msg2 = `Now Playing, **${ this.nowPlaying.title }** ${ this.nowPlaying.requestBy ? 'requested by ' + this.nowPlaying.requestBy.name : '' }`
-				}
-
-				this.cache = this.nowPlaying
-				await this.sendEmbedMsg(new EmbedBuilder().setDescription(msg2), msg1, interaction)
-				this.status = 'playing'
-				await request('/set-status', { status: this.status })
-				await this.genUpcoming(true)
+			let msg1
+			let msg2
+			if (isSkip) {
+				msg1 = `Skipped, ${ this.cache ? this.cache.title : 'a song' }. Next!`
+				msg2 = `Now Playing, **${ this.nowPlaying.title }** ${ this.nowPlaying.requestBy ? 'requested by ' + this.nowPlaying.requestBy.name : '' }`
 			} else {
-				console.log('Job finished')
-				this.status = 'stopped'
-				await request('/set-status', { status: this.status })
-				if (!isSkip) {
-					await this.sendMsg('Player stopped.')
-				}
+				msg1 = 'Connection with Youtube successfully restored.'
+				msg2 = `Now Playing, **${ this.nowPlaying.title }** ${ this.nowPlaying.requestBy ? 'requested by ' + this.nowPlaying.requestBy.name : '' }`
 			}
+
+			this.cache = this.nowPlaying
+			await this.sendEmbedMsg(new EmbedBuilder().setDescription(msg2), msg1, interaction)
+			this.status = 'playing'
+			await request('/set-status', { status: this.status })
+			await this.genUpcoming(true, this.nowPlaying.youtubeId)
+
 		} catch (e) {
 			console.error(e)
 			await this.sendMsg(`Cannot play the song, ${ this.attempt < 6 ? 'retrying . . .' : 'gave up!' }`, interaction)
@@ -217,7 +215,8 @@ export class Player {
 			const username = interaction.user.username
 			const id = interaction.user.id
 			const avatar = interaction.user.avatar
-			const r = await request('/add', { query, username, id, avatar })
+			const nowPlayingId = this.nowPlaying ? this.nowPlaying.youtubeId : ''
+			const r = await request('/add', { query, username, id, avatar, nowPlayingId })
 			if (r.status === 'error') {
 				await this.sendMsg(r.message, interaction)
 				return
@@ -257,7 +256,8 @@ export class Player {
 
 	public async showUpcoming(interaction: any) {
 		try {
-			const r = await request('/upcoming')
+			const nowPlayingId = this.nowPlaying ? this.nowPlaying.youtubeId : ''
+			const r = await request('/upcoming', { nowPlayingId })
 			if (r.isOk()) {
 				this.playlist = r.data
 				const data = embedPlaylist(r.data)

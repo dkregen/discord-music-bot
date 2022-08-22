@@ -73,7 +73,8 @@ app.get('/add', async (req, res) => {
 		const username = req.query.username
 		const id = req.query.id
 		const avatar = req.query.avatar
-		const r = await playlist.add(query, username, id, avatar)
+		const nowPlayingId = req.query.nowPlayingId
+		const r = await playlist.add(query, username, id, avatar, nowPlayingId)
 		console.log('/add', r)
 		res.status(r.code).json(r)
 	} catch (e) {
@@ -139,7 +140,8 @@ app.get('/get-maxlength', async (req, res) => {
 
 app.get('/upcoming', async (req, res) => {
 	try {
-		const r = playlist.showUpcoming()
+		const nowPlayingId = req.query.nowPlayingId
+		const r = playlist.showUpcoming(nowPlayingId)
 		console.log('/upcoming', r)
 		res.status(r.code).json(r)
 	} catch (e) {
