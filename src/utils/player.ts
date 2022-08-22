@@ -12,6 +12,8 @@ const MESSAGE_CHANNEL_ID = process.env.GROUP_MESSAGE_CHANNEL_ID || ''
 
 export class Player {
 
+	private maxlength: number
+	private timestamp: number
 	private upcoming: Song
 	private nowPlaying: Song
 	private cache: Song
@@ -78,7 +80,7 @@ export class Player {
 			await sleep(10000)
 		}
 
-		if(currentYoutubeId && !!this.nowPlaying && this.nowPlaying.youtubeId !== currentYoutubeId) {
+		if (currentYoutubeId && !!this.nowPlaying && this.nowPlaying.youtubeId !== currentYoutubeId) {
 			return
 		}
 
@@ -114,6 +116,32 @@ export class Player {
 		console.log(r)
 	}
 
+	private async startDurationWatcher(ytId: string) {
+		try {
+			while (true) {
+				await sleep(60000)
+
+				if (!this.nowPlaying || ytId === this.nowPlaying.youtubeId || !this.timestamp) {
+					return
+				}
+
+				const r = await request('/get-maxlength')
+				const len = r.data.length
+				if (len) {
+					this.maxlength = Number(len)
+				}
+
+				const now = (new Date()).getTime()
+				if (now > this.timestamp + (this.maxlength * 1000)) {
+					await this.sendMsg('Song duration reached maximum allowed stream time, song automatically skipped!')
+					await this.next(undefined, true)
+				}
+			}
+		} catch (e) {
+			console.error('maxDurationWatcher', e)
+		}
+	}
+
 	public async play(interaction?: any, isSkip?: boolean) {
 		try {
 
@@ -144,6 +172,8 @@ export class Player {
 			console.log('NOW PLAYING', this.nowPlaying)
 			this.upcoming = null
 			this.attempt = 0
+			this.timestamp = (new Date()).getTime()
+			this.startDurationWatcher(this.nowPlaying.youtubeId).then()
 
 			let msg1
 			let msg2

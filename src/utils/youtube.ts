@@ -54,8 +54,8 @@ export async function ytSearch(query: string): Promise<Song | undefined> {
 export async function ytSuggestions(reference: Song): Promise<Array<Song>> {
 	try {
 		let youtubeId
-		if(reference.isYtMusic) {
-			const query = reference.title + ' ' + (!!reference.artists && reference.artists.length > 0 ? reference.artists[0].name : '') + ' official audio'
+		if (reference.isYtMusic) {
+			const query = reference.title + ' ' + (!!reference.artists && reference.artists.length > 0 ? reference.artists[ 0 ].name : '') + ' official audio'
 			console.log('suggestion query', query)
 			const r = await axios.get('https://www.googleapis.com/youtube/v3/search', {
 				params: {
@@ -72,7 +72,7 @@ export async function ytSuggestions(reference: Song): Promise<Array<Song>> {
 
 			for (let i = 0; i < r.data.items.length; i++) {
 				const search = r.data.items[ i ]
-				if(search.snippet) {
+				if (search.snippet) {
 					youtubeId = search.id.videoId
 					console.log('Got', search)
 					break
@@ -105,7 +105,7 @@ export async function ytSuggestions(reference: Song): Promise<Array<Song>> {
 				chosen.push(related.id.videoId)
 			}
 
-			if(chosen.length >= 45) {
+			if (chosen.length >= 45) {
 				break
 			}
 		}
@@ -123,11 +123,11 @@ export async function ytSuggestions(reference: Song): Promise<Array<Song>> {
 			for (let i = 0; i < r2.data.items.length; i++) {
 				const vid = r2.data.items[ i ]
 				const duration = moment.duration(vid.contentDetails.duration).asSeconds()
-				if (duration < 390) {
+				if (duration < 390 && duration > 30) {
 					const song = new Song()
 					for (let i = 0; i < chosenObj.length; i++) {
 						if (chosenObj[ i ].id.videoId === vid.id) {
-							const snippet = chosenObj[i].snippet
+							const snippet = chosenObj[ i ].snippet
 							song.title = snippet.title
 							song.youtubeId = vid.id
 							for (let key in snippet.thumbnails) {
