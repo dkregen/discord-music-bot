@@ -148,8 +148,10 @@ const commands = [
 		.addSubcommand(subcommand => subcommand
 			.setName('playlist')
 			.setDescription('Set playlist outside base playlist.')
-			.addStringOption(option => option.setName('playlist').setDescription('Link of Youtube Music playlist').setRequired(true))),
-
+			.addStringOption(option => option.setName('playlist').setDescription('Link of Youtube Music playlist').setRequired(true))
+			.addBooleanOption(option => option.setName('shuffle')
+				.setDescription('Shuffle playlist')
+				.setRequired(false)))
 ].map(command => command.toJSON())
 
 client.on('ready', async () => {

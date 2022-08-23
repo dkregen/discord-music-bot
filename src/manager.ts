@@ -152,7 +152,7 @@ app.get('/upcoming', async (req, res) => {
 
 app.get('/playlist', async (req, res) => {
 	try {
-		const r = await playlist.setPlaylist(req.query.url)
+		const r = await playlist.setPlaylist(req.query.url, req.query.shuffle)
 		console.log('/playlist', r)
 		res.status(r.code).json(r)
 	} catch (e) {

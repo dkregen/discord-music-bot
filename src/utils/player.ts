@@ -355,7 +355,8 @@ export class Player {
 	public async setPlaylist(interaction: any) {
 		try {
 			const url = interaction.options.getString('playlist')
-			const r = await request('/playlist', { url })
+			const isShuffle = interaction.options.getBoolean('shuffle')
+			const r = await request('/playlist', { url, shuffle: isShuffle ? 'on' : 'off' })
 			await this.sendMsg(r.message, interaction)
 			if (r.isOk() && !!r.data && (!r.data.status || r.data.status !== 'playing')) {
 				await this.restoreNowPlaying()

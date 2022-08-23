@@ -212,19 +212,20 @@ export default class PlaylistManager {
 		return d(arr)
 	}
 
-	public async setPlaylist(link: string): Promise<Res> {
+	public async setPlaylist(link: string, shuffle: string): Promise<Res> {
 		try {
-
+			const isShuffle = shuffle === 'on'
 			const parsedURL = new URL(link)
 			const params = parsedURL.searchParams
 			const listId = params.get('list')
 			if (!!listId) {
 				this.playlist.splice(0, this.playlist.length)
-				const isRetrieved = await ytRetrievePlaylist(listId, this.playlist)
-				if (!isRetrieved) {
+				const songs = await ytRetrievePlaylist(listId, isShuffle)
+				if (songs.length <= 0) {
 					throw 0
 				}
 
+				this.playlist = songs
 				console.log(this.playlist)
 				return s('Playlist has been loaded.')
 			} else {

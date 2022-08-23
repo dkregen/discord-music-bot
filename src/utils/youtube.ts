@@ -4,12 +4,14 @@ import moment = require('moment')
 import { YTvideo } from 'ytfps/out/interfaces'
 import { searchMusics } from 'node-youtube-music'
 import axios from 'axios'
+import { shuffle } from './common'
 
 const ytfps = require('ytfps')
 const YT_KEY = process.env.YOUTUBE_API_KEY
 
-export async function ytRetrievePlaylist(youtubeId: string, songs: Array<Song>): Promise<boolean> {
+export async function ytRetrievePlaylist(youtubeId: string, isShuffle: boolean): Promise<Array<Song>> {
 	try {
+		const songs: Array<Song> = []
 		const yt = await ytfps(youtubeId, 'url')
 		yt.videos.forEach((vid: YTvideo) => {
 			const s = new Song()
@@ -29,10 +31,14 @@ export async function ytRetrievePlaylist(youtubeId: string, songs: Array<Song>):
 			}
 		})
 
-		return true
+		if(isShuffle) {
+			shuffle(songs)
+		}
+
+		return songs
 	} catch (e) {
 		console.error(e)
-		return false
+		return []
 	}
 }
 
