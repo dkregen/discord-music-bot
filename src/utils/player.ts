@@ -123,6 +123,10 @@ export class Player {
 
 	private async removeByYtId(youtubeId: string) {
 		const r = await request('/delete', { youtubeId })
+		if(r.isOk() && (youtubeId === this.upcoming.youtubeId || !this.upcoming)) {
+			this.upcoming = undefined
+			await this.genUpcoming(false, this.nowPlaying ? this.nowPlaying.youtubeId : undefined)
+		}
 		console.log(r)
 	}
 
