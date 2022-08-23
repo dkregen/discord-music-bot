@@ -123,7 +123,7 @@ export class Player {
 
 	private async removeByYtId(youtubeId: string) {
 		const r = await request('/delete', { youtubeId })
-		if(r.isOk() && (youtubeId === this.upcoming.youtubeId || !this.upcoming)) {
+		if (r.isOk() && (!this.upcoming || youtubeId === this.upcoming.youtubeId)) {
 			this.upcoming = undefined
 			await this.genUpcoming(false, this.nowPlaying ? this.nowPlaying.youtubeId : undefined)
 		}
@@ -168,6 +168,7 @@ export class Player {
 			let hasUpcoming = !!this.upcoming
 			const hasRestored = (this.status === 'stopped' && !!this.nowPlaying)
 			if (!hasUpcoming && !hasRestored) {
+				await this.restoreNowPlaying()
 				await this.genUpcoming()
 			}
 
@@ -246,7 +247,9 @@ export class Player {
 				await this.sendMsg(`Skipped ${ this.nowPlaying.title }.`, interaction)
 			}
 			this.play(interaction, isSkip).then()
-			await this.removeByYtId(youtubeId)
+			if (!!youtubeId) {
+				await this.removeByYtId(youtubeId)
+			}
 		} catch (e) {
 			console.error(e)
 			await this.sendMsg('Cannot play next song, please try again!', interaction)
