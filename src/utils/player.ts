@@ -178,6 +178,7 @@ export class Player {
 				this.status = 'stopped'
 				await request('/set-status', { status: this.status })
 				await this.sendMsg('Song not loaded! Please add a song using command `/a your keyword or video link`')
+				this.timestamp = (new Date()).getTime()
 				return
 			}
 
@@ -232,6 +233,7 @@ export class Player {
 			await this.nowPlaying.generateAudioResource()
 			await this.sendMsg('Music stopped!', interaction)
 			await request('/set-status', { status: this.status })
+			this.timestamp = (new Date()).getTime()
 		} catch (e) {
 			console.error(e)
 			await this.sendMsg('Cannot stop the song, please try again!', interaction)
