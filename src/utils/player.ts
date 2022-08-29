@@ -132,10 +132,12 @@ export class Player {
 
 	private async startDurationWatcher(ytId: string) {
 		try {
+
+			const timestamp = this.timestamp
 			while (true) {
 				await sleep(60000)
 
-				if (!this.nowPlaying || ytId === this.nowPlaying.youtubeId || !this.timestamp) {
+				if (!this.nowPlaying || ytId === this.nowPlaying.youtubeId || !this.timestamp || timestamp !== this.timestamp) {
 					return
 				}
 
@@ -146,9 +148,10 @@ export class Player {
 				}
 
 				const now = (new Date()).getTime()
-				if (now > this.timestamp + (this.maxlength * 1000)) {
+				if (now > timestamp + (this.maxlength * 1000)) {
 					await this.sendMsg('Song duration reached maximum allowed stream time, song automatically skipped!')
 					await this.next(undefined, true)
+					return
 				}
 			}
 		} catch (e) {
