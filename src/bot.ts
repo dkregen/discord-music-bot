@@ -52,7 +52,8 @@ const commands = [
 
 	new SlashCommandBuilder()
 		.setName('ly')
-		.setDescription('Show lyrics of current playing song.'),
+		.setDescription('Show lyrics of current playing song.')
+		.addStringOption(option => option.setName('title').setDescription('Enter song title or leave it empty to search lyrics of current playing song.').setRequired(false)),
 
 	new SlashCommandBuilder()
 		.setName('np')
@@ -185,7 +186,8 @@ client.on('ready', async () => {
 					player.next(interaction, true).then()
 					break
 				case 'ly':
-					await interaction.reply({ ephemeral: true, content: 'Lyrics features is not available at this time!' })
+					await interaction.deferReply()
+					player.findLyrics(interaction).then()
 					break
 				case 'np':
 					await interaction.deferReply()

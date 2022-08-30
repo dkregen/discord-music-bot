@@ -5,8 +5,9 @@ import {
 	joinVoiceChannel,
 	VoiceConnection, VoiceConnectionStatus,
 } from '@discordjs/voice'
-import { embedAddedSong, embedNowPlaying, embedPlaylist, request, sleep } from './common'
+import { embedAddedSong, embedLyrics, embedNowPlaying, embedPlaylist, request, sleep } from './common'
 import Song from './song'
+import { findLyrics } from './lyrics'
 
 const MESSAGE_CHANNEL_ID = process.env.GROUP_MESSAGE_CHANNEL_ID || ''
 
@@ -247,7 +248,7 @@ export class Player {
 			this.timestamp = (new Date()).getTime()
 		} catch (e) {
 			console.error(e)
-			await this.sendMsg('Cannot stop the song, please try again!', interaction)
+			await this.sendMsg('Cannot stop the song, please try again!', interaction, true)
 		}
 	}
 
@@ -265,7 +266,7 @@ export class Player {
 			}
 		} catch (e) {
 			console.error(e)
-			await this.sendMsg('Cannot play next song, please try again!', interaction)
+			await this.sendMsg('Cannot play next song, please try again!', interaction, true)
 		}
 	}
 
@@ -300,7 +301,7 @@ export class Player {
 			}
 		} catch (e) {
 			console.error(e)
-			await this.sendMsg('Cannot add the song, please try again!', interaction)
+			await this.sendMsg('Cannot add the song, please try again!', interaction, true)
 		}
 	}
 
@@ -315,7 +316,7 @@ export class Player {
 			await this.sendEmbedMsg(embed, 'This song is playing right now.', interaction)
 		} catch (e) {
 			console.error(e)
-			await this.sendMsg('The bot cannot figure out what song playing right now, sorry.', interaction)
+			await this.sendMsg('The bot cannot figure out what song playing right now, sorry.', interaction, true)
 		}
 	}
 
@@ -332,7 +333,33 @@ export class Player {
 			}
 		} catch (e) {
 			console.error(e)
-			await this.sendMsg('The bot cannot figure out what song will playing next, sorry.', interaction)
+			await this.sendMsg('The bot cannot figure out what song will playing next, sorry.', interaction, true)
+		}
+	}
+
+	public async findLyrics(interaction: any) {
+		try {
+			const o = { title: '', author: '', content: '' }
+			o.title = interaction.options.getString('title')
+			console.log(o.title)
+			if (!o.title && !this.nowPlaying) {
+				throw 0
+			} else if (!o.title) {
+				o.title = this.nowPlaying.title.replace(/ *\[[^\]]*]/, '').replace(/ *\([^)]*\) */g, '')
+				o.author = (this.nowPlaying.isYtMusic ? this.nowPlaying.artists[ 0 ].name : null)
+			}
+
+			o.content = await findLyrics(o.title, o.author)
+			if (!o.content) {
+				throw 0
+			}
+
+			o.title = o.title ? o.title.toUpperCase() : 'Lyrics'
+			const embed = embedLyrics(o)
+			await this.sendEmbedMsg(embed.embed, embed.msg, interaction)
+		} catch (e) {
+			console.error(e)
+			await this.sendMsg('Cannot find the song!', interaction, true)
 		}
 	}
 
@@ -399,9 +426,9 @@ export class Player {
 		}
 	}
 
-	private async sendMsg(msg: string, interact?: any, isDelete?: boolean) {
+	private async sendMsg(msg: string, interact?: any, isDelete?: boolean, isEphemeral?: boolean) {
 		if (interact) {
-			await interact.editReply({ embeds: [], content: msg })
+			await interact.editReply({ embeds: [], content: msg, ephemeral: !isDelete && isEphemeral })
 			if (isDelete) {
 				await sleep(20000)
 				await interact.deleteReply()
@@ -412,9 +439,9 @@ export class Player {
 		}
 	}
 
-	private async sendEmbedMsg(embeddedMsg: EmbedBuilder, msg: string, interact?: any, isDelete?: boolean) {
+	private async sendEmbedMsg(embeddedMsg: EmbedBuilder, msg: string, interact?: any, isDelete?: boolean, isEphemeral?: boolean) {
 		if (interact) {
-			await interact.editReply({ embeds: [embeddedMsg], content: msg || ' ' })
+			await interact.editReply({ embeds: [embeddedMsg], content: msg || ' ', ephemeral: !isDelete && isEphemeral })
 			if (isDelete) {
 				await sleep(20000)
 				await interact.deleteReply()

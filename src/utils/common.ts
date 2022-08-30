@@ -101,19 +101,37 @@ export async function request(uri: string, params?: any): Promise<Res> {
 }
 
 export function shuffle(array) {
-	let currentIndex = array.length,  randomIndex;
+	let currentIndex = array.length, randomIndex
 
 	// While there remain elements to shuffle.
 	while (currentIndex != 0) {
 
 		// Pick a remaining element.
-		randomIndex = Math.floor(Math.random() * currentIndex);
+		randomIndex = Math.floor(Math.random() * currentIndex)
 		currentIndex--;
 
 		// And swap it with the current element.
-		[array[currentIndex], array[randomIndex]] = [
-			array[randomIndex], array[currentIndex]];
+		[array[ currentIndex ], array[ randomIndex ]] = [
+			array[ randomIndex ], array[ currentIndex ]]
 	}
 
-	return array;
+	return array
+}
+
+export function embedLyrics(o: { author: string, title: string, content: string } | null): { msg: string, embed: EmbedBuilder | undefined } {
+
+	if (!o) {
+		return { msg: 'Lyrics not found!', embed: undefined }
+	}
+
+	const embed = new EmbedBuilder()
+		.setTitle(o.title)
+		.setDescription(o.content.substring(0, 4090))
+		.addFields({ name: '\u200B', value: '\u200B', inline: false })
+		.setFooter({
+			text: o.author ? 'Made Famous by ' + o.author + '.' : 'Unknown Author.',
+			iconURL: `https://ui-avatars.com/api/?background=random&name=${ encodeURIComponent(o.author || 'Unknown Author') }`,
+		})
+
+	return { msg: 'Found the lyrics!', embed }
 }

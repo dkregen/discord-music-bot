@@ -26,6 +26,7 @@ export default class Song {
 			this.duration = r.duration || this.duration
 			this.colors = r.colors || []
 			this.requestBy = r.requestBy || undefined
+			this.isYtMusic = r.isYtMusic || false
 		}
 	}
 
