@@ -145,6 +145,10 @@ export class Player {
 					return
 				}
 
+				if (!this.upcoming) {
+					continue
+				}
+
 				const r = await request('/get-maxlength')
 				const len = r.data.length
 				if (len) {
