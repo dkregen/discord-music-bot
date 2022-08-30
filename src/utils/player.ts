@@ -137,7 +137,11 @@ export class Player {
 			while (true) {
 				await sleep(60000)
 
-				if (!this.nowPlaying || ytId === this.nowPlaying.youtubeId || !this.timestamp || timestamp !== this.timestamp) {
+				const isDifferentSongPlayed = ytId !== this.nowPlaying.youtubeId
+				const isPlaying = !!this.nowPlaying && this.status === 'playing'
+				const hasTimestamp = !!this.timestamp
+				const isDifferentTimestamp = timestamp !== this.timestamp
+				if (isDifferentSongPlayed || isDifferentTimestamp || !hasTimestamp || !isPlaying) {
 					return
 				}
 
@@ -332,7 +336,7 @@ export class Player {
 		try {
 			const index = interaction.options.getInteger('index')
 			const msg = 'Please input a correct index! You can find the index by running command `/u`.'
-			if (!this.playlist || !index || this.playlist.length <= index) {
+			if (!this.playlist || !index || index >= this.playlist.length) {
 				await this.sendMsg(msg, interaction)
 				return
 			}
