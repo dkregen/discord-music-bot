@@ -336,7 +336,7 @@ export class Player {
 		try {
 			const index = interaction.options.getInteger('index')
 			const msg = 'Please input a correct index! You can find the index by running command `/u`.'
-			if (!this.playlist || !index || index >= this.playlist.length) {
+			if (!this.playlist || !index || index > this.playlist.length) {
 				await this.sendMsg(msg, interaction)
 				return
 			}
