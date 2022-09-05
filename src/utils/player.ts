@@ -168,6 +168,12 @@ export class Player {
 		}
 	}
 
+	private async isAllowBypass(): Promise<boolean> {
+		const r = await request('/get-all-admin')
+		console.log('TESTTTTTTTTTTTTTTTTTTTTTTTTTTTTT', r)
+		return !!r.data && !!r.data.isAllAdmin
+	}
+
 	public async play(interaction?: any, isSkip?: boolean) {
 		try {
 
@@ -227,7 +233,7 @@ export class Player {
 		} catch (e) {
 			console.error(e)
 			await this.sendMsg(`Cannot play the song, ${ this.attempt < 6 ? 'retrying . . .' : 'gave up!' }`, interaction)
-			await this.stop(interaction)
+			await this.stop(interaction, true)
 			if (this.attempt < 6) {
 				await this.play(interaction)
 				this.attempt++
@@ -238,17 +244,21 @@ export class Player {
 		}
 	}
 
-	public async stop(interaction: any) {
+	public async stop(interaction: any, isWithoutMessage?: boolean) {
 		try {
 			this.PLAYER.stop()
 			this.status = 'stopped'
 			await this.nowPlaying.generateAudioResource()
-			await this.sendMsg('Music stopped!', interaction)
+			if (!isWithoutMessage) {
+				await this.sendMsg('Music stopped!', interaction)
+			}
 			await request('/set-status', { status: this.status })
 			this.timestamp = (new Date()).getTime()
 		} catch (e) {
 			console.error(e)
-			await this.sendMsg('Cannot stop the song, please try again!', interaction, true)
+			if (!isWithoutMessage) {
+				await this.sendMsg('Cannot stop the song, please try again!', interaction, true)
+			}
 		}
 	}
 
@@ -292,6 +302,10 @@ export class Player {
 			const embed = embedAddedSong(song, r.message)
 			await this.sendEmbedMsg(embed, 'Added a song to the playlist.', interaction)
 
+			if (!!this.upcoming && this.upcoming.isSuggestion) {
+				this.upcoming = undefined
+			}
+
 			if (this.status !== 'playing') {
 				await sleep(1000)
 				await this.restoreNowPlaying()
@@ -333,7 +347,7 @@ export class Player {
 			}
 		} catch (e) {
 			console.error(e)
-			await this.sendMsg('The bot cannot figure out what song will playing next, sorry.', interaction, true)
+			await this.sendMsg('Playlist is empty, please add a song using command `/a` or `/set playlist`. You can also activate autoplay using command `/set autoplay` to get recommendation from Youtube.', interaction, true)
 		}
 	}
 
@@ -346,7 +360,7 @@ export class Player {
 				throw 0
 			} else if (!o.title) {
 				o.title = this.nowPlaying.title.replace(/ *\[[^\]]*]/, '').replace(/ *\([^)]*\) */g, '')
-				o.author = (this.nowPlaying.isYtMusic ? this.nowPlaying.artists[ 0 ].name : null)
+				o.author = (this.nowPlaying.isYtMusic ? this.nowPlaying.artists[ 0 ].name : undefined)
 			}
 
 			o.content = await findLyrics(o.title, o.author)
@@ -386,10 +400,15 @@ export class Player {
 		}
 	}
 
-	public async setAutoplay(interaction: any) {
+	public async setAutoplay(interaction: any, isAdmin: boolean) {
 		try {
-			const state = interaction.options.getString('state')
-			const r = await request('/set-autoplay', { state })
+			if (!(await this.isAllowBypass()) && !isAdmin) {
+				await this.sendMsg('Cannot process, you need administrator rights!', interaction)
+				return
+			}
+
+			const state = interaction.options.getBoolean('state')
+			const r = await request('/set-autoplay', { state: state ? 'on' : 'off' })
 			await this.sendMsg(r.message, interaction)
 			if (r.isOk() && !!this.nowPlaying) {
 				await this.genUpcoming()
@@ -399,8 +418,14 @@ export class Player {
 		}
 	}
 
-	public async setPlaylist(interaction: any) {
+	public async setPlaylist(interaction: any, isAdmin: boolean) {
 		try {
+
+			if (!isAdmin && !(await this.isAllowBypass())) {
+				await this.sendMsg('Cannot process, you need administrator rights!', interaction)
+				return
+			}
+
 			const url = interaction.options.getString('playlist')
 			const isShuffle = interaction.options.getBoolean('shuffle')
 			const r = await request('/playlist', { url, shuffle: isShuffle ? 'on' : 'off' })
@@ -408,7 +433,7 @@ export class Player {
 			if (r.isOk() && !!r.data && (!r.data.status || r.data.status !== 'playing')) {
 				await this.restoreNowPlaying()
 				await this.play()
-			} else if (r.isOk() && r.data.status === 'playing') {
+			} else if (r.isOk() && r.data?.status === 'playing') {
 				await this.genUpcoming()
 			}
 		} catch (e) {
@@ -416,13 +441,50 @@ export class Player {
 		}
 	}
 
-	public async clear(interaction: any) {
+	public async clear(interaction: any, isAdmin: boolean) {
+
+		if (!isAdmin && !(await this.isAllowBypass())) {
+			await this.sendMsg('Cannot process, you need administrator rights!', interaction)
+			return
+		}
+
 		const r = await request('/reset')
 		if (r.isOk()) {
 			await this.sendMsg('Playlist cleared.', interaction)
 			this.upcoming = null
 		} else {
 			await this.sendMsg('Cannot clear playlist!', interaction)
+		}
+	}
+
+	public async setMaxlength(interaction: any, isAdmin: boolean) {
+
+		if (!isAdmin && !(await this.isAllowBypass())) {
+			await this.sendMsg('Cannot process, you need administrator rights!', interaction)
+			return
+		}
+
+		const length = interaction.options.getInteger('seconds')
+		const r = await request('/set-maxlength', { length })
+		if (r.isOk()) {
+			await this.sendMsg(`Maximum allowed duration changed to ${ length }s.`, interaction)
+		} else {
+			await this.sendMsg('Cannot set maximum duration!', interaction)
+		}
+	}
+
+	public async setBypass(interaction: any, isAdmin: boolean) {
+		try {
+			if (!isAdmin && !(await this.isAllowBypass())) {
+				await this.sendMsg('Cannot process, you need administrator rights!', interaction)
+				return
+			}
+
+			const state = interaction.options.getBoolean('state')
+			await request('/set-all-admin', { all: state ? '1' : '' })
+			await this.sendMsg(`All users are ${ state ? '' : 'dis' }allowed to change system variables.`, interaction)
+		} catch (e) {
+			console.error(e)
 		}
 	}
 

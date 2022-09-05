@@ -83,6 +83,28 @@ app.get('/add', async (req, res) => {
 	}
 })
 
+app.get('/set-all-admin', async (req, res) => {
+	try {
+		const status = req.query.all
+		const r = await playlist.setAdmin(status)
+		console.log('/set-all-admin', r)
+		res.status(r.code).json(r)
+	} catch (e) {
+		console.error(e)
+		res.status(500).send()
+	}
+})
+
+app.get('/get-all-admin', async (req, res) => {
+	try {
+		const r = s('ok', { isAllAdmin: playlist.isAllAdmin })
+		res.status(r.code).json(r)
+	} catch (e) {
+		console.error(e)
+		res.status(500).send()
+	}
+})
+
 app.get('/set-status', async (req, res) => {
 	try {
 		const r = await playlist.setStatus(req.query.status)

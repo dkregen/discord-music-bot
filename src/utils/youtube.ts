@@ -136,6 +136,7 @@ export async function ytSuggestions(reference: Song): Promise<Array<Song>> {
 							const snippet = chosenObj[ i ].snippet
 							song.title = snippet.title
 							song.youtubeId = vid.id
+							song.isSuggestion = true
 							for (let key in snippet.thumbnails) {
 								song.thumbnailUrl = snippet.thumbnails[ key ].url
 								break

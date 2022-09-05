@@ -77,9 +77,16 @@ const commands = [
 			.setDescription('Wipe out playlist.'))
 
 		.addSubcommand(subcommand => subcommand
+			.setName('bypass')
+			.setDescription('Allow bypass admin privilege.').addBooleanOption(option => option
+				.setName('state')
+				.setDescription('Turn On/Off')
+				.setRequired(true)))
+
+		.addSubcommand(subcommand => subcommand
 			.setName('maxlength')
 			.setDescription('Set maximum duration of a song until it skipped automatically.')
-			.addStringOption(option => option.setName('minutes').setDescription('Input an integer').setRequired(true)))
+			.addIntegerOption(option => option.setName('seconds').setDescription('Input an integer').setRequired(true)))
 
 		.addSubcommand(subcommand => subcommand
 			.setName('base')
@@ -137,14 +144,10 @@ const commands = [
 		.addSubcommand(subcommand => subcommand
 			.setName('autoplay')
 			.setDescription('Set autoplay and add songs based on recommendation.')
-			.addStringOption(option => option
+			.addBooleanOption(option => option
 				.setName('state')
 				.setDescription('Turn On/Off')
-				.setRequired(true)
-				.addChoices(
-					{ name: 'On', value: 'on' },
-					{ name: 'Off', value: 'off' },
-				)))
+				.setRequired(true)))
 
 		.addSubcommand(subcommand => subcommand
 			.setName('playlist')
@@ -152,7 +155,7 @@ const commands = [
 			.addStringOption(option => option.setName('playlist').setDescription('Link of Youtube Music playlist').setRequired(true))
 			.addBooleanOption(option => option.setName('shuffle')
 				.setDescription('Shuffle playlist')
-				.setRequired(false)))
+				.setRequired(false))),
 ].map(command => command.toJSON())
 
 client.on('ready', async () => {
@@ -204,30 +207,46 @@ client.on('ready', async () => {
 				case 'set':
 					const id = interaction.user.id
 					console.log(id, ADMIN_ID)
-					if (id !== ADMIN_ID) {
-						console.log(interaction.user.username, 'tried to modify', interaction.options.getSubcommand(), 'and denied!')
-						await interaction.reply({
-							ephemeral: true,
-							content: 'You are not allowed to change system variables because you do not have administrator rights!',
-						})
-						return
-					}
 
 					switch (interaction.options.getSubcommand()) {
 						case 'clear':
 							await interaction.deferReply()
-							player.clear(interaction).then()
+							player.clear(interaction, id === ADMIN_ID).then()
 							break
 						case 'autoplay':
 							await interaction.deferReply()
-							player.setAutoplay(interaction).then()
+							player.setAutoplay(interaction, id === ADMIN_ID).then()
 							break
 						case 'base':
 						case 'playlist':
 							await interaction.deferReply()
-							player.setPlaylist(interaction).then()
+							player.setPlaylist(interaction, id === ADMIN_ID).then()
 							break
 						case 'maxlength':
+							if (id !== ADMIN_ID) {
+								console.log(interaction.user.username, 'tried to modify', interaction.options.getSubcommand(), 'and denied!')
+								await interaction.reply({
+									ephemeral: true,
+									content: 'You are not allowed to change system variables because you do not have super admin rights!',
+								})
+							}
+
+							await interaction.deferReply()
+							player.setMaxlength(interaction, id === ADMIN_ID).then()
+							return
+							break
+						case 'bypass':
+							if (id !== ADMIN_ID) {
+								console.log(interaction.user.username, 'tried to modify', interaction.options.getSubcommand(), 'and denied!')
+								await interaction.reply({
+									ephemeral: true,
+									content: 'You are not allowed to change system variables because you do not have super admin rights!',
+								})
+								return
+							}
+
+							await interaction.deferReply()
+							player.setBypass(interaction, id === ADMIN_ID).then()
 							break
 						default:
 							console.log(interaction.options.getSubcommand())

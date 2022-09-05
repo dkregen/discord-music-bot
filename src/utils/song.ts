@@ -4,6 +4,7 @@ import play = require('play-dl')
 export default class Song {
 
 	isYtMusic: boolean
+	isSuggestion: boolean
 	audioResource: AudioResource
 	youtubeId: string
 	title: string = ''
@@ -27,6 +28,7 @@ export default class Song {
 			this.colors = r.colors || []
 			this.requestBy = r.requestBy || undefined
 			this.isYtMusic = r.isYtMusic || false
+			this.isSuggestion = r.isSuggestion || false
 		}
 	}
 

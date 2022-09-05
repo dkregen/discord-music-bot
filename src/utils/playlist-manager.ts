@@ -10,6 +10,7 @@ export default class PlaylistManager {
 	private cache: Song
 	private npIdCache: string
 	private attempt: number
+	public isAllAdmin: boolean
 
 	private maxLength = 800 // seconds
 	private queues: Array<Song> = []
@@ -55,7 +56,7 @@ export default class PlaylistManager {
 			await sleep(2000)
 		}
 
-		const song = (!!this.activeSong ? this.activeSong : this.cache)
+		const song = (!!this.queues && this.queues.length > 0 ? this.queues[ this.queues.length - 1 ] : !!this.activeSong ? this.activeSong : this.cache)
 		if (!song) {
 			return false
 		}
@@ -162,6 +163,7 @@ export default class PlaylistManager {
 			const list = this.getUsedList()
 			const n = list.length - (!!list && list.length > 1 && list[ 0 ].youtubeId === nowPlayingId ? 1 : 0)
 			const msg = n <= 1 ? '`Up next.`' : '`' + (n - 1) + ' song' + (n > 2 ? 's' : '') + ' away.`'
+			this.autoplay.splice(0, this.autoplay.length)
 			this.autoplay = []
 			return s(msg, q)
 
@@ -204,12 +206,17 @@ export default class PlaylistManager {
 	}
 
 	public showUpcoming(nowPlayingId: string): Res {
-		const arr = [...this.queues, ...this.playlist, ...this.autoplay]
+		const arr = [...this.queues, ...this.playlist]
 		if (arr.length > 0 && arr[ 0 ].youtubeId === nowPlayingId) {
 			arr.splice(0, 1)
 		}
 
 		return d(arr)
+	}
+
+	public setAdmin(status: string) {
+		this.isAllAdmin = !!status
+		return s()
 	}
 
 	public async setPlaylist(link: string, shuffle: string): Promise<Res> {
@@ -227,7 +234,7 @@ export default class PlaylistManager {
 
 				this.playlist = songs
 				console.log(this.playlist)
-				return s('Playlist has been loaded.')
+				return s('Playlist has been loaded. Please note, added song will be prioritized.')
 			} else {
 				return err('Please provide a correct Youtube playlist link.')
 			}
