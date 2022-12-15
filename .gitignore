@@ -117,3 +117,6 @@ dist
 # IDE
 .vscode
 .idea
+.env
+.env.prod
+.env.dev
