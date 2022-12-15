@@ -85,11 +85,6 @@ const commands = [
 			.addIntegerOption(option => option.setName('seconds').setDescription('Input an integer').setRequired(true)))
 
 		.addSubcommand(subcommand => subcommand
-			.setName('volume')
-			.setDescription('Set volume (0 - 100).')
-			.addIntegerOption(option => option.setName('value').setDescription('Input an integer').setRequired(true)))
-
-		.addSubcommand(subcommand => subcommand
 			.setName('base')
 			.setDescription('Set base playlist.')
 			.addStringOption(option => option.setName('playlist')
