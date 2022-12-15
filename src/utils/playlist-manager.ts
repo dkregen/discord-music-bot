@@ -142,7 +142,7 @@ export default class PlaylistManager {
 			if (isValidHttpUrl(query)) {
 				q = await ytMetadata(query)
 				if (!q) {
-					return err('Only youtube video link is supported currently. Youtube music and spotify link is coming soon!')
+					return err('Only youtube / youtube music link is supported currently. Spotify link is coming soon!')
 				}
 			} else {
 				q = await ytSearch(query)
@@ -156,21 +156,47 @@ export default class PlaylistManager {
 			q.requestBy = {
 				name: username,
 				avatar: `https://cdn.discordapp.com/avatars/${ id }/${ avatar }`,
-				userId: id,
+				userId: Number(id),
 			}
 
-			this.queues.push(q)
+			let info = 'Added a song to the playlist.'
+			const inARow = this.checkSameUserInARow()
+			const isInARow = !!inARow && inARow.userId != q.requestBy.userId
+			if (isInARow) {
+				this.queues.splice(inARow.index, 0, q)
+				info = 'The song was successfully added before someone\'s song since they add multiple songs in a row.'
+			} else {
+				this.queues.push(q)
+			}
+
 			const list = this.getUsedList()
 			const n = list.length - (!!list && list.length > 1 && list[ 0 ].youtubeId === nowPlayingId ? 1 : 0)
-			const msg = n <= 1 ? '`Up next.`' : '`' + (n - 1) + ' song' + (n > 2 ? 's' : '') + ' away.`'
+			const nInARow = isInARow ? inARow.index - (!!list && list.length > 1 && list[ 0 ].youtubeId === nowPlayingId ? 1 : 0) : 0
+			const far = (isInARow ?  (nInARow) : n - 1 )
+			const msg = far < 1 ? '`Up next.`' : '`' + far + ' song' + (far > 2 ? 's' : '') + ' away.`'
 			this.autoplay.splice(0, this.autoplay.length)
 			this.autoplay = []
-			return s(msg, q)
+			return s(msg, { ...q, info })
 
 		} catch (e) {
 			console.error(e)
 			return err('Cannot add the song. Please try again with another keywords!')
 		}
+	}
+
+	checkSameUserInARow(): { index: number, userId: number } {
+		let lastUserId: number
+		for (let i = 0; i < this.queues.length; i++) {
+			const q = this.queues[ i ]
+			console.log(q.title, q.requestBy.userId)
+			if (!!lastUserId && lastUserId === q.requestBy.userId) {
+				return { index: i, userId: lastUserId }
+			}
+
+			lastUserId = q.requestBy.userId
+		}
+
+		return
 	}
 
 	async setAutoplay(state: 'on' | 'off'): Promise<Res> {

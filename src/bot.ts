@@ -39,10 +39,6 @@ const commands = [
 		.setDescription('Resume stopped/paused song.'),
 
 	new SlashCommandBuilder()
-		.setName('pause')
-		.setDescription('Pause current playing song.'),
-
-	new SlashCommandBuilder()
 		.setName('stop')
 		.setDescription('Stop current playing song.'),
 
@@ -87,6 +83,11 @@ const commands = [
 			.setName('maxlength')
 			.setDescription('Set maximum duration of a song until it skipped automatically.')
 			.addIntegerOption(option => option.setName('seconds').setDescription('Input an integer').setRequired(true)))
+
+		.addSubcommand(subcommand => subcommand
+			.setName('volume')
+			.setDescription('Set volume (0 - 100).')
+			.addIntegerOption(option => option.setName('value').setDescription('Input an integer').setRequired(true)))
 
 		.addSubcommand(subcommand => subcommand
 			.setName('base')
@@ -216,6 +217,10 @@ client.on('ready', async () => {
 						case 'autoplay':
 							await interaction.deferReply()
 							player.setAutoplay(interaction, id === ADMIN_ID).then()
+							break
+						case 'volume':
+							await interaction.deferReply()
+							player.setVolume(interaction, id === ADMIN_ID).then()
 							break
 						case 'base':
 						case 'playlist':

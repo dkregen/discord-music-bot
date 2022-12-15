@@ -73,7 +73,7 @@ export function embedPlaylist(songs: Array<Song>): { msg: string, embed: EmbedBu
 	let text = ''
 	for (let i = 0; i < songs.length; i++) {
 		const song = songs[ i ]
-		text += `${ i + 1 }. ${ song.title }\r\n`
+		text += `${ i + 1 }. ${ song.requestBy && song.requestBy.name ? '**(' +song.requestBy.name + ')** ' : '' }${ song.title }\r\n`
 
 		if (i === 99) {
 			break

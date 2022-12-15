@@ -13,7 +13,7 @@ export default class Song {
 	album: string
 	thumbnailUrl: string
 	duration: { label: string, totalSeconds: number } = { label: '', totalSeconds: 0 }
-	requestBy: { id: number, name: string, avatar: string }
+	requestBy: { userId: number, name: string, avatar: string }
 	colors: Array<any> = []
 
 	constructor(r?: any) {

@@ -13,6 +13,8 @@ const MESSAGE_CHANNEL_ID = process.env.GROUP_MESSAGE_CHANNEL_ID || ''
 
 export class Player {
 
+	public volume: number = 100
+
 	private maxlength: number
 	private timestamp: number
 	private upcoming: Song
@@ -208,6 +210,7 @@ export class Player {
 			this.join()
 			this.nowPlaying = hasRestored ? this.nowPlaying : this.upcoming
 			console.log('NOW PLAYING', this.nowPlaying)
+			this.nowPlaying.audioResource.volume.setVolume(this.volume)
 			this.PLAYER.play(this.nowPlaying.audioResource)
 			this.upcoming = null
 			this.attempt = 0
@@ -300,7 +303,7 @@ export class Player {
 
 			const song = new Song(r.data)
 			const embed = embedAddedSong(song, r.message)
-			await this.sendEmbedMsg(embed, 'Added a song to the playlist.', interaction)
+			await this.sendEmbedMsg(embed, r.data.info, interaction)
 
 			if (!!this.upcoming && this.upcoming.isSuggestion) {
 				this.upcoming = undefined
@@ -511,6 +514,32 @@ export class Player {
 		} else {
 			const channel = await this.client.channels.fetch(MESSAGE_CHANNEL_ID)
 			channel[ 'send' ]({ embeds: [embeddedMsg] })
+		}
+	}
+
+	async setVolume(interaction: any, isAdmin: boolean) {
+
+		try {
+			if (!(await this.isAllowBypass()) && !isAdmin) {
+				await this.sendMsg('Cannot process, you need administrator rights!', interaction)
+				return
+			}
+
+			const val = interaction.options.getInteger('val')
+			if (val > 100) {
+				this.volume = 100
+			} else if (val < 0) {
+				this.volume = 0
+			} else {
+				this.volume = val
+			}
+
+			if (this.nowPlaying) {
+				this.nowPlaying.audioResource.volume.setVolume(this.volume)
+				await this.sendMsg('Volume has been set to ' + this.volume, interaction)
+			}
+		} catch (e) {
+			console.error(e)
 		}
 	}
 
