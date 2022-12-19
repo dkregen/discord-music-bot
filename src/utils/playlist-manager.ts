@@ -160,11 +160,11 @@ export default class PlaylistManager {
 			}
 
 			let info = 'Added a song to the playlist.'
-			const inARow = this.checkSameUserInARow()
-			const isInARow = !!inARow && inARow.userId != q.requestBy.userId
+			const inARow = this.checkSameUserInARow(q.requestBy.userId)
+			const isInARow = !!inARow
 			if (isInARow) {
 				this.queues.splice(inARow.index, 0, q)
-				info = 'The song was successfully added before someone\'s song since they add multiple songs in a row.'
+				info = 'The song was successfully added before the other songs because someone added more than one song.'
 			} else {
 				this.queues.push(q)
 			}
@@ -172,7 +172,7 @@ export default class PlaylistManager {
 			const list = this.getUsedList()
 			const n = list.length - (!!list && list.length > 1 && list[ 0 ].youtubeId === nowPlayingId ? 1 : 0)
 			const nInARow = isInARow ? inARow.index - (!!list && list.length > 1 && list[ 0 ].youtubeId === nowPlayingId ? 1 : 0) : 0
-			const far = (isInARow ?  (nInARow) : n - 1 )
+			const far = (isInARow ? (nInARow) : n - 1)
 			const msg = far < 1 ? '`Up next.`' : '`' + far + ' song' + (far > 2 ? 's' : '') + ' away.`'
 			this.autoplay.splice(0, this.autoplay.length)
 			this.autoplay = []
@@ -184,16 +184,31 @@ export default class PlaylistManager {
 		}
 	}
 
-	checkSameUserInARow(): { index: number, userId: number } {
-		let lastUserId: number
-		for (let i = 0; i < this.queues.length; i++) {
-			const q = this.queues[ i ]
-			console.log(q.title, q.requestBy.userId)
-			if (!!lastUserId && lastUserId === q.requestBy.userId) {
-				return { index: i, userId: lastUserId }
+	checkSameUserInARow(userId: number): { index: number, userId: number } {
+		try {
+			let lastIndex: number
+
+			// Find on the array if the ID already registered and use it as starting point.
+			for (let i = this.queues.length - 1; i >= 0; i--) {
+				if (Number(userId) === Number(this.queues[ i ].requestBy.userId)) {
+					lastIndex = i
+					break
+				}
 			}
 
-			lastUserId = q.requestBy.userId
+			// Find the duplicated ID. If found, return it.
+			for (let i = lastIndex + 1; i < this.queues.length; i++) {
+				const q1 = Number(this.queues[ i ].requestBy.userId)
+				for (let j = i + 1; j < this.queues.length; j++) {
+					const q2 = Number(this.queues[ j ].requestBy.userId)
+					if (q1 === q2) {
+						// Found duplicated ID!
+						return { index: j, userId: q2 }
+					}
+				}
+			}
+		} catch (e) {
+			console.error(e)
 		}
 
 		return
