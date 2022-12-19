@@ -210,7 +210,6 @@ export class Player {
 			this.join()
 			this.nowPlaying = hasRestored ? this.nowPlaying : this.upcoming
 			console.log('NOW PLAYING', this.nowPlaying)
-			this.nowPlaying.audioResource.volume.setVolume(this.volume)
 			this.PLAYER.play(this.nowPlaying.audioResource)
 			this.upcoming = null
 			this.attempt = 0
@@ -534,7 +533,7 @@ export class Player {
 				this.volume = val
 			}
 
-			if (this.nowPlaying) {
+			if (this.nowPlaying && this.nowPlaying.audioResource && this.nowPlaying.audioResource.volume) {
 				this.nowPlaying.audioResource.volume.setVolume(this.volume)
 				await this.sendMsg('Volume has been set to ' + this.volume, interaction)
 			}

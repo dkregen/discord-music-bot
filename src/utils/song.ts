@@ -40,6 +40,7 @@ export default class Song {
 		try {
 			const url = `https://www.youtube.com/watch?v=${ this.youtubeId }`
 			let stream = await play.stream(url, { discordPlayerCompatibility: true })
+			console.log('fdsjdjhsakfhdsjkgfdshkjfadhsajkgfshdajkgfshdajkgfhdsajgfhjkdsagfkdjsa', stream)
 			this.audioResource = createAudioResource(stream.stream, {
 				inputType: stream.type,
 			})

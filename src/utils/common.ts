@@ -30,7 +30,7 @@ export function embedAddedSong(song: Song, msg: string): EmbedBuilder {
 		.setTitle(song.title)
 		.setURL(`https://www.youtube.com/watch?v=${ song.youtubeId }`)
 		.setAuthor({
-			name: song.artists[ 0 ].name,
+			name: song.artists[ 0 ].name + (song.isYtMusic ? ' 🎯' : ''),
 			iconURL: `https://ui-avatars.com/api/?background=random&name=${ song.artists[ 0 ].name.split(' ').join('+') }`,
 			url: `https://music.youtube.com/channel/${ song.artists[ 0 ].id }`,
 		})
@@ -45,7 +45,7 @@ export function embedNowPlaying(song: Song): EmbedBuilder {
 		.setTitle(song.title)
 		.setURL(`https://www.youtube.com/watch?v=${ song.youtubeId }`)
 		.setAuthor({
-			name: song.artists[ 0 ].name,
+			name: song.artists[ 0 ].name + (song.isYtMusic ? ' 🎯' : ''),
 			iconURL: `https://ui-avatars.com/api/?background=random&name=${ song.artists[ 0 ].name.split(' ').join('+') }`,
 			url: `https://music.youtube.com/channel/${ song.artists[ 0 ].id }`,
 		})
