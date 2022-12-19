@@ -215,15 +215,16 @@ export class Player {
 			this.attempt = 0
 			this.timestamp = (new Date()).getTime()
 			this.startDurationWatcher(this.nowPlaying.youtubeId).then()
+			const decoratorMsg = this.nowPlaying.isYtMusic ? '🎯 ' : ''
 
 			let msg1
 			let msg2
 			if (isSkip) {
 				msg1 = `Skipped, ${ this.cache ? this.cache.title : 'a song' }. Next!`
-				msg2 = `Now Playing, **${ this.nowPlaying.title }** ${ this.nowPlaying.requestBy ? 'requested by ' + this.nowPlaying.requestBy.name : '' }`
+				msg2 = `${decoratorMsg}Now Playing, **${ this.nowPlaying.title }** ${ this.nowPlaying.requestBy ? 'requested by ' + this.nowPlaying.requestBy.name : '' }`
 			} else {
 				msg1 = 'Connection with Youtube successfully restored.'
-				msg2 = `Now Playing, **${ this.nowPlaying.title }** ${ this.nowPlaying.requestBy ? 'requested by ' + this.nowPlaying.requestBy.name : '' }`
+				msg2 = `${decoratorMsg}Now Playing, **${ this.nowPlaying.title }** ${ this.nowPlaying.requestBy ? 'requested by ' + this.nowPlaying.requestBy.name : '' }`
 			}
 
 			this.cache = this.nowPlaying
