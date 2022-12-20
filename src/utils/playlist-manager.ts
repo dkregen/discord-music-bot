@@ -1,7 +1,8 @@
-import { ytMetadata, ytRetrievePlaylist, ytSearch, ytSuggestions } from './youtube'
+import { ytMetadata, ytRetrievePlaylist, ytSelect, ytSuggestions } from './youtube'
 import Song from './song'
 import { isValidHttpUrl, sleep } from './common'
 import { Res, err, s, d } from './res'
+import { searchMusics } from 'node-youtube-music'
 
 export default class PlaylistManager {
 
@@ -132,20 +133,37 @@ export default class PlaylistManager {
 		return np ? d(np) : err('Empty list.')
 	}
 
-	public async add(query: string, username: string, id: string, avatar: string, nowPlayingId: string): Promise<Res> {
+	public async search(query: string): Promise<Res> {
+		if (!query || query === '') {
+			return err('Cannot find the song. Please provide the keywords!')
+		}
+
 		try {
-			if (!query || query === '') {
+			const rs = await searchMusics(query)
+			return s('', rs)
+		} catch (e) {
+			console.error(e)
+			return err('Cannot find the song. Please provide the keywords!')
+		}
+	}
+
+	public async add(query: string, username: string, id: string, avatar: string, nowPlayingId: string, selectedSong: Song): Promise<Res> {
+		try {
+			if ((!query || query === '') && !selectedSong) {
 				return err('Cannot add the song. Please provide keywords or Youtube URL!')
 			}
 
 			let q
-			if (isValidHttpUrl(query)) {
+			if (!!selectedSong) {
+				q = selectedSong
+				q.isYtMusic = true
+			} else if (isValidHttpUrl(query)) {
 				q = await ytMetadata(query)
 				if (!q) {
 					return err('Only youtube / youtube music link is supported currently. Spotify link is coming soon!')
 				}
 			} else {
-				q = await ytSearch(query)
+				q = await ytSelect(query)
 			}
 
 			if (!q) {

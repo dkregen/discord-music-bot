@@ -1,6 +1,15 @@
-import { Client, IntentsBitField, Partials, SlashCommandBuilder, Routes, EmbedBuilder } from 'discord.js'
+import {
+	Client,
+	IntentsBitField,
+	Partials,
+	SlashCommandBuilder,
+	Routes,
+	EmbedBuilder,
+	ActionRowBuilder, SelectMenuBuilder,
+} from 'discord.js'
 import { REST } from '@discordjs/rest'
 import { Player } from './utils/player'
+import { sleep } from './utils/common'
 
 const VOICE_CHANNEL_ID = process.env.GROUP_VOICE_CHANNEL_ID || ''
 const ADMIN_ID = process.env.GROUP_ADMIN_ID
@@ -154,6 +163,7 @@ const commands = [
 				.setRequired(false))),
 ].map(command => command.toJSON())
 
+let interact
 client.on('ready', async () => {
 	try {
 		const channel: any = await client.channels.fetch(VOICE_CHANNEL_ID)
@@ -161,101 +171,126 @@ client.on('ready', async () => {
 		const player = new Player(channel, client)
 
 		client.on('interactionCreate', async interaction => {
-			if (!interaction.isChatInputCommand()) return
-			const { commandName } = interaction
 
-			switch (commandName) {
-				case 'ping':
-					await interaction.reply({ ephemeral: true, content: 'Pong!' })
-					break
-				case 'a':
-					await interaction.deferReply()
-					player.add(interaction).then()
-					break
-				case 'play':
-					await interaction.deferReply()
-					player.play(interaction).then()
-					break
-				case 'stop':
-					await interaction.deferReply()
-					player.stop(interaction).then()
-					break
-				case 'skip':
-					await interaction.deferReply()
-					player.next(interaction, true).then()
-					break
-				case 'ly':
-					await interaction.deferReply()
-					player.findLyrics(interaction).then()
-					break
-				case 'np':
-					await interaction.deferReply()
-					player.printNowPlaying(interaction).then()
-					break
-				case 'u':
-					await interaction.deferReply()
-					player.showUpcoming(interaction).then()
-					break
-				case 'x':
-					await interaction.deferReply()
-					player.removeFromPlaylist(interaction).then()
-					break
-				case 'set':
-					const id = interaction.user.id
-					console.log(id, ADMIN_ID)
+			if (interaction.isSelectMenu()) {
+				player.chooseSong(interact, interaction).then()
+				interact = undefined
+			}
 
-					switch (interaction.options.getSubcommand()) {
-						case 'clear':
-							await interaction.deferReply()
-							player.clear(interaction, id === ADMIN_ID).then()
-							break
-						case 'autoplay':
-							await interaction.deferReply()
-							player.setAutoplay(interaction, id === ADMIN_ID).then()
-							break
-						case 'volume':
-							await interaction.deferReply()
-							player.setVolume(interaction, id === ADMIN_ID).then()
-							break
-						case 'base':
-						case 'playlist':
-							await interaction.deferReply()
-							player.setPlaylist(interaction, id === ADMIN_ID).then()
-							break
-						case 'maxlength':
-							if (id !== ADMIN_ID) {
-								console.log(interaction.user.username, 'tried to modify', interaction.options.getSubcommand(), 'and denied!')
-								await interaction.reply({
-									ephemeral: true,
-									content: 'You are not allowed to change system variables because you do not have super admin rights!',
-								})
-							}
+			if (interaction.isChatInputCommand()) {
+				const { commandName } = interaction
+				switch (commandName) {
+					case 'ping':
+						await interaction.reply({ ephemeral: true, content: 'Pong!' })
+						break
+					case 'a':
+						await interaction.deferReply()
+						while (!!interact) {
+							await sleep(1000)
+						}
 
-							await interaction.deferReply()
-							player.setMaxlength(interaction, id === ADMIN_ID).then()
+						const isSuggested = await player.suggest(interaction)
+						if (!isSuggested) {
 							return
-							break
-						case 'bypass':
-							if (id !== ADMIN_ID) {
-								console.log(interaction.user.username, 'tried to modify', interaction.options.getSubcommand(), 'and denied!')
-								await interaction.reply({
-									ephemeral: true,
-									content: 'You are not allowed to change system variables because you do not have super admin rights!',
-								})
-								return
-							}
+						}
 
-							await interaction.deferReply()
-							player.setBypass(interaction, id === ADMIN_ID).then()
-							break
-						default:
-							console.log(interaction.options.getSubcommand())
-							await interaction.reply('Cannot identify your command. Please type `/` to see available commands!')
-					}
-					break
-				default:
-					console.log(commandName)
-					await interaction.reply('Cannot identify your command. Please type `/` to see available commands!')
+						let i = 0
+						interact = interaction
+						while (i < 10 && !!interact) {
+							await sleep(1000)
+							console.log(!!interact)
+							if (i + 1 >= 10 && !!interact) {
+								interact.editReply({ content: 'Time\'s up! :sleeping:', components: [] })
+								interact = null
+							}
+							i++
+						}
+						break
+					case 'play':
+						await interaction.deferReply()
+						player.play(interaction).then()
+						break
+					case 'stop':
+						await interaction.deferReply()
+						player.stop(interaction).then()
+						break
+					case 'skip':
+						await interaction.deferReply()
+						player.next(interaction, true).then()
+						break
+					case 'ly':
+						await interaction.deferReply()
+						player.findLyrics(interaction).then()
+						break
+					case 'np':
+						await interaction.deferReply()
+						player.printNowPlaying(interaction).then()
+						break
+					case 'u':
+						await interaction.deferReply()
+						player.showUpcoming(interaction).then()
+						break
+					case 'x':
+						await interaction.deferReply()
+						player.removeFromPlaylist(interaction).then()
+						break
+					case 'set':
+						const id = interaction.user.id
+						console.log(id, ADMIN_ID)
+
+						switch (interaction.options.getSubcommand()) {
+							case 'clear':
+								await interaction.deferReply()
+								player.clear(interaction, id === ADMIN_ID).then()
+								break
+							case 'autoplay':
+								await interaction.deferReply()
+								player.setAutoplay(interaction, id === ADMIN_ID).then()
+								break
+							case 'volume':
+								await interaction.deferReply()
+								player.setVolume(interaction, id === ADMIN_ID).then()
+								break
+							case 'base':
+							case 'playlist':
+								await interaction.deferReply()
+								player.setPlaylist(interaction, id === ADMIN_ID).then()
+								break
+							case 'maxlength':
+								if (id !== ADMIN_ID) {
+									console.log(interaction.user.username, 'tried to modify', interaction.options.getSubcommand(), 'and denied!')
+									await interaction.reply({
+										ephemeral: true,
+										content: 'You are not allowed to change system variables because you do not have super admin rights!',
+									})
+								}
+
+								await interaction.deferReply()
+								player.setMaxlength(interaction, id === ADMIN_ID).then()
+								return
+								break
+							case 'bypass':
+								if (id !== ADMIN_ID) {
+									console.log(interaction.user.username, 'tried to modify', interaction.options.getSubcommand(), 'and denied!')
+									await interaction.reply({
+										ephemeral: true,
+										content: 'You are not allowed to change system variables because you do not have super admin rights!',
+									})
+									return
+								}
+
+								await interaction.deferReply()
+								player.setBypass(interaction, id === ADMIN_ID).then()
+								break
+							default:
+								console.log(interaction.options.getSubcommand())
+								await interaction.reply('Cannot identify your command. Please type `/` to see available commands!')
+						}
+						break
+					default:
+						console.log(commandName)
+						await interaction.reply('Cannot identify your command. Please type `/` to see available commands!')
+				}
 			}
 		})
 

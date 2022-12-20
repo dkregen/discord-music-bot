@@ -1,11 +1,11 @@
-import { Client, EmbedBuilder } from 'discord.js'
+import { ActionRowBuilder, Client, EmbedBuilder, SelectMenuBuilder } from 'discord.js'
 import {
 	AudioPlayer, AudioPlayerStatus,
 	createAudioPlayer,
 	joinVoiceChannel,
 	VoiceConnection, VoiceConnectionStatus,
 } from '@discordjs/voice'
-import { embedAddedSong, embedLyrics, embedNowPlaying, embedPlaylist, request, sleep } from './common'
+import { embedAddedSong, embedLyrics, embedNowPlaying, embedPlaylist, isValidHttpUrl, request, sleep } from './common'
 import Song from './song'
 import { findLyrics } from './lyrics'
 
@@ -26,6 +26,7 @@ export class Player {
 	private isConnected: boolean
 	private attempt: number
 	private playlist: Array<Song>
+	private suggestions: Array<Song> = []
 
 	constructor(
 		private channel: any,
@@ -221,10 +222,10 @@ export class Player {
 			let msg2
 			if (isSkip) {
 				msg1 = `Skipped, ${ this.cache ? this.cache.title : 'a song' }. Next!`
-				msg2 = `${decoratorMsg}Now Playing, **${ this.nowPlaying.title }** ${ this.nowPlaying.requestBy ? 'requested by ' + this.nowPlaying.requestBy.name : '' }`
+				msg2 = `Now Playing, ${ decoratorMsg }**${ this.nowPlaying.title }** ${ this.nowPlaying.requestBy ? 'requested by ' + this.nowPlaying.requestBy.name : '' }`
 			} else {
 				msg1 = 'Connection with Youtube successfully restored.'
-				msg2 = `${decoratorMsg}Now Playing, **${ this.nowPlaying.title }** ${ this.nowPlaying.requestBy ? 'requested by ' + this.nowPlaying.requestBy.name : '' }`
+				msg2 = `Now Playing, ${ decoratorMsg }**${ this.nowPlaying.title }** ${ this.nowPlaying.requestBy ? 'requested by ' + this.nowPlaying.requestBy.name : '' }`
 			}
 
 			this.cache = this.nowPlaying
@@ -283,10 +284,79 @@ export class Player {
 		}
 	}
 
-	public async add(interaction: any) {
+	public async chooseSong(interaction1: any, interaction2: any) {
 		try {
+			const index = Number(interaction2.values[ 0 ])
+			if (index < 0) {
+				await this.sendMsg('Canceled!', interaction1)
+				return
+			}
+
+			await this.add(interaction1, index)
+		} catch (e) {
+			console.error('ERROR', e)
+			await this.sendMsg('Cannot process your request!', interaction1)
+		}
+
+		return
+	}
+
+	public async suggest(interaction: any) {
+
+		const query = interaction.options.getString('music')
+		if (!query || query === '') {
+			await this.sendMsg('Cannot add the song. Please provide keywords or Youtube URL!', interaction)
+			return
+		}
+
+		if (isValidHttpUrl(query)) {
+			await this.add(interaction)
+			return
+		}
+
+		const r = await request('/search', { keyword: query })
+		if (!r.data || !r.data.length) {
+			await this.sendMsg('Song not found!', interaction)
+			return
+		}
+
+		this.suggestions = Song.toArray(r.data)
+		const opts: Array<{ label: string, value: string }> = []
+		for (let i = 0; i < this.suggestions.length && i < 5; i++) {
+			const l = this.suggestions[ i ]
+			try {
+				const title = l.title
+				const artistName = l.artists && l.artists.length ? '- ' +l.artists[ 0 ].name : ''
+				const label = `🎯 ${ title } ${ artistName }`
+				opts.push({ label: label.substring(0, 60), value: String(i) })
+			} catch (e) {
+				console.error(e)
+			}
+		}
+
+		opts.push({ label: '🙊 Cancel', value: '-1' })
+		console.log(opts)
+		const actionRowComponent = new ActionRowBuilder().setComponents(
+			new SelectMenuBuilder()
+				.setPlaceholder('Pick your song!')
+				.setCustomId('songId')
+				.setOptions(opts),
+		)
+
+		await interaction.editReply({
+			embeds: [],
+			content: '',
+			components: [actionRowComponent.toJSON()],
+		})
+
+		return true
+	}
+
+	public async add(interaction: any, index?: number) {
+		try {
+
 			const query = interaction.options.getString('music')
-			if (!query || query === '') {
+			if ((!query || query === '') && !index) {
 				await this.sendMsg('Cannot add the song. Please provide keywords or Youtube URL!', interaction)
 				return
 			}
@@ -295,7 +365,9 @@ export class Player {
 			const id = interaction.user.id
 			const avatar = interaction.user.avatar
 			const nowPlayingId = this.nowPlaying ? this.nowPlaying.youtubeId : ''
-			const r = await request('/add', { query, username, id, avatar, nowPlayingId })
+			const selectedSong = index >= 0 && this.suggestions.length ? this.suggestions[ index ] : undefined
+			const r = await request('/add', { query, username, id, avatar, nowPlayingId, selectedSong })
+
 			if (r.status === 'error') {
 				await this.sendMsg(r.message, interaction)
 				return
@@ -493,7 +565,7 @@ export class Player {
 
 	private async sendMsg(msg: string, interact?: any, isDelete?: boolean, isEphemeral?: boolean) {
 		if (interact) {
-			await interact.editReply({ embeds: [], content: msg, ephemeral: !isDelete && isEphemeral })
+			await interact.editReply({ embeds: [], components: [], content: msg, ephemeral: !isDelete && isEphemeral })
 			if (isDelete) {
 				await sleep(20000)
 				await interact.deleteReply()
@@ -506,7 +578,12 @@ export class Player {
 
 	private async sendEmbedMsg(embeddedMsg: EmbedBuilder, msg: string, interact?: any, isDelete?: boolean, isEphemeral?: boolean) {
 		if (interact) {
-			await interact.editReply({ embeds: [embeddedMsg], content: msg || ' ', ephemeral: !isDelete && isEphemeral })
+			await interact.editReply({
+				embeds: [embeddedMsg],
+				components: [],
+				content: msg || ' ',
+				ephemeral: !isDelete && isEphemeral,
+			})
 			if (isDelete) {
 				await sleep(20000)
 				await interact.deleteReply()

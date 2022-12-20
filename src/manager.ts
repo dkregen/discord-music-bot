@@ -74,7 +74,8 @@ app.get('/add', async (req, res) => {
 		const id = req.query.id
 		const avatar = req.query.avatar
 		const nowPlayingId = req.query.nowPlayingId
-		const r = await playlist.add(query, username, id, avatar, nowPlayingId)
+		const selectedSong = !!req.query.selectedSong ? JSON.parse(req.query.selectedSong) : undefined
+		const r = await playlist.add(query, username, id, avatar, nowPlayingId, selectedSong)
 		console.log('/add', r)
 		res.status(r.code).json(r)
 	} catch (e) {
@@ -176,6 +177,17 @@ app.get('/playlist', async (req, res) => {
 	try {
 		const r = await playlist.setPlaylist(req.query.url, req.query.shuffle)
 		console.log('/playlist', r)
+		res.status(r.code).json(r)
+	} catch (e) {
+		console.error(e)
+		res.status(500).send()
+	}
+})
+
+app.get('/search', async (req, res) => {
+	try {
+		const r = await playlist.search(req.query.keyword)
+		console.log('/search', r)
 		res.status(r.code).json(r)
 	} catch (e) {
 		console.error(e)

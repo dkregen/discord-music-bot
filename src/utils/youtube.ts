@@ -42,7 +42,7 @@ export async function ytRetrievePlaylist(youtubeId: string, isShuffle: boolean):
 	}
 }
 
-export async function ytSearch(query: string): Promise<Song | undefined> {
+export async function ytSelect(query: string): Promise<Song | undefined> {
 	try {
 		const r = await searchMusics(query)
 		if (r.length > 0) {
