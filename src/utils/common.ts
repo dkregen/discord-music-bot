@@ -26,13 +26,18 @@ export function isValidHttpUrl(uri: string) {
 }
 
 export function embedAddedSong(song: Song, msg: string): EmbedBuilder {
+	const artist = song.artists.length ? song.artists[ 0 ].name : 'Unknown'
+	const artistId = song.artists.length ? song.artists[ 0 ].id : '0'
+	const urlMedia = `https://www.youtube.com/watch?v=${ song.youtubeId }`
+	const urlIcon = `https://ui-avatars.com/api/?background=random&name=${ encodeURIComponent(artist) }`
+	const urlArtist = `https://music.youtube.com/channel/${ artistId }`
 	const embed = new EmbedBuilder()
 		.setTitle(song.title)
-		.setURL(`https://www.youtube.com/watch?v=${ song.youtubeId }`)
+		.setURL(urlMedia)
 		.setAuthor({
-			name: song.artists[ 0 ].name + (song.isYtMusic ? ' 🎯' : ''),
-			iconURL: `https://ui-avatars.com/api/?background=random&name=${ song.artists[ 0 ].name.split(' ').join('+') }`,
-			url: `https://music.youtube.com/channel/${ song.artists[ 0 ].id }`,
+			name: artist + (song.isYtMusic ? ' 🎯' : ''),
+			iconURL: urlIcon,
+			url: urlArtist,
 		})
 		.setThumbnail(song.thumbnailUrl)
 		.setDescription(msg || '-')

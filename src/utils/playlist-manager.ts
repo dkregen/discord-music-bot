@@ -204,8 +204,7 @@ export default class PlaylistManager {
 
 	checkSameUserInARow(userId: number): { index: number, userId: number } {
 		try {
-			let lastIndex: number
-
+			let lastIndex = -1
 			// Find on the array if the ID already registered and use it as starting point.
 			for (let i = this.queues.length - 1; i >= 0; i--) {
 				if (Number(userId) === Number(this.queues[ i ].requestBy.userId)) {
