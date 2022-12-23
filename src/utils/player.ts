@@ -229,7 +229,12 @@ export class Player {
 			}
 
 			this.cache = this.nowPlaying
-			await this.sendEmbedMsg(new EmbedBuilder().setDescription(msg2), msg1, interaction)
+			const embed = new EmbedBuilder().setDescription(msg2)
+			if(this.nowPlaying.isYtMusic) {
+				embed.setColor('#c3352e')
+			}
+
+			await this.sendEmbedMsg(embed, msg1, interaction)
 			this.status = 'playing'
 			await request('/set-status', { status: this.status })
 			await this.genUpcoming(true, this.nowPlaying.youtubeId)

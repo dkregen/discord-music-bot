@@ -3,6 +3,7 @@ import Song from './song'
 import { isValidHttpUrl, sleep } from './common'
 import { Res, err, s, d } from './res'
 import { searchMusics } from 'node-youtube-music'
+import * as url from 'url'
 
 export default class PlaylistManager {
 
@@ -158,9 +159,16 @@ export default class PlaylistManager {
 				q = selectedSong
 				q.isYtMusic = true
 			} else if (isValidHttpUrl(query)) {
-				q = await ytMetadata(query)
+
+				const url_parts = url.parse(query, true)
+				const val = String(url_parts.query.v)
+				q = await ytSelect(val)
+
 				if (!q) {
-					return err('Only youtube / youtube music link is supported currently. Spotify link is coming soon!')
+					q = await ytMetadata(query)
+					if (!q) {
+						return err('Only youtube / youtube music link is supported currently. Spotify link is coming soon!')
+					}
 				}
 			} else {
 				q = await ytSelect(query)

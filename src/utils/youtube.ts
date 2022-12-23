@@ -170,6 +170,7 @@ export async function ytSuggestions(reference: Song): Promise<Array<Song>> {
 export async function ytMetadata(link: string): Promise<Song | undefined> {
 	try {
 		const data = await ytdl.getBasicInfo(link)
+		console.log(data)
 		const song = new Song()
 		song.title = data.videoDetails.title
 		song.duration.totalSeconds = Number(data.videoDetails.lengthSeconds)

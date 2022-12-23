@@ -42,6 +42,10 @@ export function embedAddedSong(song: Song, msg: string): EmbedBuilder {
 		.setThumbnail(song.thumbnailUrl)
 		.setDescription(msg || '-')
 
+	if(song.isYtMusic) {
+		embed.setColor('#c3352e')
+	}
+
 	return embed
 }
 
@@ -65,6 +69,10 @@ export function embedNowPlaying(song: Song): EmbedBuilder {
 			text: song.requestBy ? 'Requested by ' + song.requestBy.name + '.' : 'Added by the bots.',
 			iconURL: song.requestBy ? song.requestBy.avatar : `https://ui-avatars.com/api/?background=random&name=Bots`,
 		})
+
+	if(song.isYtMusic) {
+		embed.setColor('#c3352e')
+	}
 
 	return embed
 }

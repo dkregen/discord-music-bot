@@ -4,9 +4,11 @@ import play = require('play-dl')
 export default class Song {
 
 	isYtMusic: boolean
+	isSpotify: boolean
 	isSuggestion: boolean
 	audioResource: AudioResource
 	youtubeId: string
+	spotifyLink: string
 	title: string = ''
 	artists: Array<{ name: string, id: string }> = []
 	isExplicit: boolean
@@ -29,11 +31,12 @@ export default class Song {
 			this.requestBy = r.requestBy || undefined
 			this.isYtMusic = r.isYtMusic || false
 			this.isSuggestion = r.isSuggestion || false
+			this.spotifyLink = r.spotifyLink || false
 		}
 	}
 
 	isEmpty() {
-		return !this.youtubeId || this.youtubeId === ''
+		return (!this.youtubeId || this.youtubeId === '') && (!this.spotifyLink || this.spotifyLink === '')
 	}
 
 	public async generateAudioResource(): Promise<Boolean> {
