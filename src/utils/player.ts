@@ -216,7 +216,7 @@ export class Player {
 			this.attempt = 0
 			this.timestamp = (new Date()).getTime()
 			this.startDurationWatcher(this.nowPlaying.youtubeId).then()
-			const decoratorMsg = this.nowPlaying.isYtMusic ? '🎯 ' : ''
+			const decoratorMsg = this.nowPlaying.isExplicit ? '💢 ' : this.nowPlaying.isYtMusic ? '🎯 ' : '😐 '
 
 			let msg1
 			let msg2
@@ -327,12 +327,13 @@ export class Player {
 
 		this.suggestions = Song.toArray(r.data)
 		const opts: Array<{ label: string, value: string }> = []
-		for (let i = 0; i < this.suggestions.length && i < 5; i++) {
+		for (let i = 0; i < this.suggestions.length && i < 10; i++) {
 			const l = this.suggestions[ i ]
 			try {
 				const title = l.title
 				const artistName = l.artists && l.artists.length ? '- ' +l.artists[ 0 ].name : ''
-				const label = `🎯 ${ title } ${ artistName }`
+				const decoratorMsg = l.isExplicit ? '💢 ' : l.isYtMusic ? '🎯 ' : '😐 '
+				const label = `${decoratorMsg}${ title } ${ artistName }`
 				opts.push({ label: label.substring(0, 60), value: String(i) })
 			} catch (e) {
 				console.error(e)
@@ -371,6 +372,7 @@ export class Player {
 			const avatar = interaction.user.avatar
 			const nowPlayingId = this.nowPlaying ? this.nowPlaying.youtubeId : ''
 			const selectedSong = index >= 0 && this.suggestions.length ? this.suggestions[ index ] : undefined
+			console.log(selectedSong)
 			const r = await request('/add', { query, username, id, avatar, nowPlayingId, selectedSong })
 
 			if (r.status === 'error') {

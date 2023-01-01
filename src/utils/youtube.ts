@@ -31,7 +31,7 @@ export async function ytRetrievePlaylist(youtubeId: string, isShuffle: boolean):
 			}
 		})
 
-		if(isShuffle) {
+		if (isShuffle) {
 			shuffle(songs)
 		}
 
@@ -61,7 +61,7 @@ export async function ytSuggestions(reference: Song): Promise<Array<Song>> {
 	try {
 		let youtubeId
 		if (reference.isYtMusic) {
-			const query = reference.title + ' ' + (!!reference.artists && reference.artists.length > 0 ? reference.artists[ 0 ].name : '') + ' official audio'
+			const query = reference.title + (!!reference.artists && reference.artists.length > 0 ? ' ' + reference.artists[ 0 ].name : '') + ' official audio'
 			console.log('suggestion query', query)
 			const r = await axios.get('https://www.googleapis.com/youtube/v3/search', {
 				params: {
@@ -165,6 +165,51 @@ export async function ytSuggestions(reference: Song): Promise<Array<Song>> {
 		console.error(e)
 		return undefined
 	}
+}
+
+export async function ytSearch(query): Promise<Song[]> {
+	const songs = []
+	query = query + ' official audio'
+	console.log('suggestion query', query)
+	const r = await axios.get('https://www.googleapis.com/youtube/v3/search', {
+		params: {
+			'q': query,
+			'type': 'video',
+			'videoCategoryId': '10',
+			'regionCode': 'id',
+			'videoDuration': 'short',
+			'part': 'snippet',
+			'maxResults': '20',
+			'key': YT_KEY,
+		},
+	})
+
+	for (let i = 0; i < r.data.items.length; i++) {
+		const search = r.data.items[ i ]
+		if (search.snippet) {
+			console.log('Got', search)
+			const snippet = search.snippet
+			const song = new Song()
+			song.title = snippet.title
+			song.youtubeId = search.id?.videoId
+			song.isSuggestion = true
+			for (let key in snippet.thumbnails) {
+				song.thumbnailUrl = snippet.thumbnails[ key ].url
+				break
+			}
+			song.artists = [{
+				name: snippet.channelTitle,
+				id: snippet.channelId,
+			}]
+			song.duration = {
+				label: moment.utc(Number(0) * 1000).format('m:s'),
+				totalSeconds: 0,
+			}
+			songs.push(song)
+		}
+	}
+
+	return songs
 }
 
 export async function ytMetadata(link: string): Promise<Song | undefined> {

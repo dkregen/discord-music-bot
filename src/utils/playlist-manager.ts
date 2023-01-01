@@ -1,9 +1,9 @@
-import { ytMetadata, ytRetrievePlaylist, ytSelect, ytSuggestions } from './youtube'
+import { ytMetadata, ytRetrievePlaylist, ytSearch, ytSelect, ytSuggestions } from './youtube'
 import Song from './song'
 import { isValidHttpUrl, sleep } from './common'
 import { Res, err, s, d } from './res'
-import { searchMusics } from 'node-youtube-music'
 import * as url from 'url'
+import { searchMusics } from 'node-youtube-music'
 
 export default class PlaylistManager {
 
@@ -141,7 +141,21 @@ export default class PlaylistManager {
 
 		try {
 			const rs = await searchMusics(query)
-			return s('', rs)
+			const songs = []
+			for(const s of rs) {
+				const song = new Song(s)
+				song.isYtMusic = true
+				songs.push(song)
+			}
+
+			if(songs.length < 5 || true) {
+				const rs2 = await ytSearch(query)
+				for(const s of rs2) {
+					songs.push(s)
+				}
+			}
+
+			return s('', songs)
 		} catch (e) {
 			console.error(e)
 			return err('Cannot find the song. Please provide the keywords!')
@@ -157,11 +171,15 @@ export default class PlaylistManager {
 			let q
 			if (!!selectedSong) {
 				q = selectedSong
-				q.isYtMusic = true
 			} else if (isValidHttpUrl(query)) {
 
 				const url_parts = url.parse(query, true)
 				const val = String(url_parts.query.v)
+
+				if (!val || val === 'undefined') {
+					return err('The link you provided is not supported!')
+				}
+
 				q = await ytSelect(val)
 
 				if (!q) {

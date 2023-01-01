@@ -31,11 +31,12 @@ export function embedAddedSong(song: Song, msg: string): EmbedBuilder {
 	const urlMedia = `https://www.youtube.com/watch?v=${ song.youtubeId }`
 	const urlIcon = `https://ui-avatars.com/api/?background=random&name=${ encodeURIComponent(artist) }`
 	const urlArtist = `https://music.youtube.com/channel/${ artistId }`
+	const decoratorMsg = song.isExplicit ? '💢' : song.isYtMusic ? '🎯' : '😐'
 	const embed = new EmbedBuilder()
 		.setTitle(song.title)
 		.setURL(urlMedia)
 		.setAuthor({
-			name: artist + (song.isYtMusic ? ' 🎯' : ''),
+			name: artist + ' ' +decoratorMsg,
 			iconURL: urlIcon,
 			url: urlArtist,
 		})
@@ -50,11 +51,12 @@ export function embedAddedSong(song: Song, msg: string): EmbedBuilder {
 }
 
 export function embedNowPlaying(song: Song): EmbedBuilder {
+	const decoratorMsg = song.isExplicit ? '💢' : song.isYtMusic ? '🎯' : '😐'
 	const embed = new EmbedBuilder()
 		.setTitle(song.title)
 		.setURL(`https://www.youtube.com/watch?v=${ song.youtubeId }`)
 		.setAuthor({
-			name: song.artists[ 0 ].name + (song.isYtMusic ? ' 🎯' : ''),
+			name: song.artists[ 0 ].name + ' ' + decoratorMsg,
 			iconURL: `https://ui-avatars.com/api/?background=random&name=${ song.artists[ 0 ].name.split(' ').join('+') }`,
 			url: `https://music.youtube.com/channel/${ song.artists[ 0 ].id }`,
 		})

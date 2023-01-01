@@ -163,6 +163,7 @@ const commands = [
 				.setRequired(false))),
 ].map(command => command.toJSON())
 
+let isServing
 let interact
 client.on('ready', async () => {
 	try {
@@ -185,12 +186,14 @@ client.on('ready', async () => {
 						break
 					case 'a':
 						await interaction.deferReply()
-						while (!!interact) {
+						while (!!interact || isServing) {
 							await sleep(1000)
 						}
 
+						isServing = true
 						const isSuggested = await player.suggest(interaction)
 						if (!isSuggested) {
+							isServing = false
 							return
 						}
 
@@ -201,10 +204,12 @@ client.on('ready', async () => {
 							console.log(!!interact)
 							if (i + 1 >= 10 && !!interact) {
 								interact.editReply({ content: 'Time\'s up! :sleeping:', components: [] })
-								interact = null
 							}
 							i++
 						}
+
+						interact = null
+						isServing = false
 						break
 					case 'play':
 						await interaction.deferReply()
