@@ -1,4 +1,4 @@
-import { ytMetadata, ytRetrievePlaylist, ytSearch, ytSelect, ytSuggestions } from './youtube'
+import { ytMetadata, ytRetrieve, ytRetrievePlaylist, ytSearch, ytSelect, ytSuggestions } from './youtube'
 import Song from './song'
 import { isValidHttpUrl, sleep } from './common'
 import { Res, err, s, d } from './res'
@@ -139,20 +139,51 @@ export default class PlaylistManager {
 			return err('Cannot find the song. Please provide the keywords!')
 		}
 
+		let rs2 = null
+		if (isValidHttpUrl(query)) {
+
+			let val = undefined
+			if (query.includes('youtu.be')) {
+				const urlParts = query.split('/')
+				val = urlParts[ urlParts.length - 1 ]
+			} else {
+				const urlParts = url.parse(query, true)
+				val = String(urlParts.query.v)
+			}
+
+			if (!val || val === 'undefined') {
+				return err('The link you provided is not supported!')
+			}
+
+			rs2 = await ytRetrieve(val)
+			if (rs2.length > 0) {
+				query = rs2[ 0 ].title
+			} else {
+				return err('The link you provided is not supported!')
+			}
+
+		}
+
 		try {
 			const rs = await searchMusics(query)
 			const songs = []
-			for(const s of rs) {
+			let i = 0
+			for (const s of rs) {
+				i++
 				const song = new Song(s)
 				song.isYtMusic = true
 				songs.push(song)
+				if (i >= 5) {
+					break
+				}
 			}
 
-			if(songs.length < 5 || true) {
-				const rs2 = await ytSearch(query)
-				for(const s of rs2) {
-					songs.push(s)
-				}
+			if (!rs2) {
+				rs2 = await ytSearch(query)
+			}
+
+			for (const s2 of rs2) {
+				songs.push(s2)
 			}
 
 			return s('', songs)

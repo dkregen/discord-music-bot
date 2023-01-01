@@ -212,6 +212,44 @@ export async function ytSearch(query): Promise<Song[]> {
 	return songs
 }
 
+export async function ytRetrieve(ytId): Promise<Song[]> {
+	const songs = []
+	const r = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
+		params: {
+			'id': ytId,
+			'key': YT_KEY,
+			'part': 'snippet'
+		},
+	})
+
+	for (let i = 0; i < r.data.items.length; i++) {
+		const search = r.data.items[ i ]
+		if (search.snippet) {
+			console.log('Got', search)
+			const snippet = search.snippet
+			const song = new Song()
+			song.title = snippet.title
+			song.youtubeId = search.id
+			song.isSuggestion = true
+			for (let key in snippet.thumbnails) {
+				song.thumbnailUrl = snippet.thumbnails[ key ].url
+				break
+			}
+			song.artists = [{
+				name: snippet.channelTitle,
+				id: snippet.channelId,
+			}]
+			song.duration = {
+				label: moment.utc(Number(0) * 1000).format('m:s'),
+				totalSeconds: 0,
+			}
+			songs.push(song)
+		}
+	}
+
+	return songs
+}
+
 export async function ytMetadata(link: string): Promise<Song | undefined> {
 	try {
 		const data = await ytdl.getBasicInfo(link)

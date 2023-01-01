@@ -8,6 +8,7 @@ import {
 import { embedAddedSong, embedLyrics, embedNowPlaying, embedPlaylist, isValidHttpUrl, request, sleep } from './common'
 import Song from './song'
 import { findLyrics } from './lyrics'
+import url from 'url'
 
 const MESSAGE_CHANNEL_ID = process.env.GROUP_MESSAGE_CHANNEL_ID || ''
 
@@ -218,19 +219,24 @@ export class Player {
 			this.startDurationWatcher(this.nowPlaying.youtubeId).then()
 			const decoratorMsg = this.nowPlaying.isExplicit ? '💢 ' : this.nowPlaying.isYtMusic ? '🎯 ' : '😐 '
 
+			let artist = ''
+			if (this.nowPlaying.isYtMusic && this.nowPlaying.artists.length) {
+				artist = this.nowPlaying.artists[ 0 ].name + ' - '
+			}
+
 			let msg1
 			let msg2
 			if (isSkip) {
 				msg1 = `Skipped, ${ this.cache ? this.cache.title : 'a song' }. Next!`
-				msg2 = `Now Playing, ${ decoratorMsg }**${ this.nowPlaying.title }** ${ this.nowPlaying.requestBy ? 'requested by ' + this.nowPlaying.requestBy.name : '' }`
+				msg2 = `Now Playing, ${ decoratorMsg }**${ artist }${ this.nowPlaying.title }** ${ this.nowPlaying.requestBy ? 'requested by ' + this.nowPlaying.requestBy.name : '' }`
 			} else {
 				msg1 = 'Connection with Youtube successfully restored.'
-				msg2 = `Now Playing, ${ decoratorMsg }**${ this.nowPlaying.title }** ${ this.nowPlaying.requestBy ? 'requested by ' + this.nowPlaying.requestBy.name : '' }`
+				msg2 = `Now Playing, ${ decoratorMsg }**${ artist }${ this.nowPlaying.title }** ${ this.nowPlaying.requestBy ? 'requested by ' + this.nowPlaying.requestBy.name : '' }`
 			}
 
 			this.cache = this.nowPlaying
 			const embed = new EmbedBuilder().setDescription(msg2)
-			if(this.nowPlaying.isYtMusic) {
+			if (this.nowPlaying.isYtMusic) {
 				embed.setColor('#c3352e')
 			}
 
@@ -308,14 +314,9 @@ export class Player {
 
 	public async suggest(interaction: any) {
 
-		const query = interaction.options.getString('music')
+		let query = interaction.options.getString('music')
 		if (!query || query === '') {
 			await this.sendMsg('Cannot add the song. Please provide keywords or Youtube URL!', interaction)
-			return
-		}
-
-		if (isValidHttpUrl(query)) {
-			await this.add(interaction)
 			return
 		}
 
@@ -331,9 +332,9 @@ export class Player {
 			const l = this.suggestions[ i ]
 			try {
 				const title = l.title
-				const artistName = l.artists && l.artists.length ? '- ' +l.artists[ 0 ].name : ''
+				const artistName = l.artists && l.artists.length ? '- ' + l.artists[ 0 ].name : ''
 				const decoratorMsg = l.isExplicit ? '💢 ' : l.isYtMusic ? '🎯 ' : '😐 '
-				const label = `${decoratorMsg}${ title } ${ artistName }`
+				const label = `${ decoratorMsg }${ title } ${ artistName }`
 				opts.push({ label: label.substring(0, 60), value: String(i) })
 			} catch (e) {
 				console.error(e)
