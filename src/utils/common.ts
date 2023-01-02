@@ -26,7 +26,7 @@ export function isValidHttpUrl(uri: string) {
 }
 
 export function embedAddedSong(song: Song, msg: string): EmbedBuilder {
-	const artist = song.artists.length ? song.artists[ 0 ].name : 'Unknown'
+	const artist = song.artists.length ? song.artists[ 0 ].name : 'Youtube'
 	const artistId = song.artists.length ? song.artists[ 0 ].id : '0'
 	const urlMedia = `https://www.youtube.com/watch?v=${ song.youtubeId }`
 	const urlIcon = `https://ui-avatars.com/api/?background=random&name=${ encodeURIComponent(artist) }`
@@ -51,14 +51,15 @@ export function embedAddedSong(song: Song, msg: string): EmbedBuilder {
 }
 
 export function embedNowPlaying(song: Song): EmbedBuilder {
+	const artistName = (song.artists.length ? song.artists[ 0 ].name : 'Youtube')
 	const decoratorMsg = song.isExplicit ? '💢' : song.isYtMusic ? '🎯' : '😐'
 	const embed = new EmbedBuilder()
 		.setTitle(song.title)
 		.setURL(`https://www.youtube.com/watch?v=${ song.youtubeId }`)
 		.setAuthor({
-			name: song.artists[ 0 ].name + ' ' + decoratorMsg,
-			iconURL: `https://ui-avatars.com/api/?background=random&name=${ song.artists[ 0 ].name.split(' ').join('+') }`,
-			url: `https://music.youtube.com/channel/${ song.artists[ 0 ].id }`,
+			name: artistName + ' ' + decoratorMsg,
+			iconURL: `https://ui-avatars.com/api/?background=random&name=${ artistName.split(' ').join('+') }`,
+			url: `https://music.youtube.com/channel/${ song.artists.length ? song.artists[ 0 ].name : 0 }`,
 		})
 		.setThumbnail(song.thumbnailUrl)
 		.addFields(

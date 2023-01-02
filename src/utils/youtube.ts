@@ -1,10 +1,11 @@
 import Song from './song'
 import * as ytdl from 'ytdl-core'
-import moment = require('moment')
 import { YTvideo } from 'ytfps/out/interfaces'
 import { searchMusics } from 'node-youtube-music'
 import axios from 'axios'
 import { shuffle } from './common'
+import * as moment from 'moment/moment'
+import { searchVideo } from './youtube-parser'
 
 const ytfps = require('ytfps')
 const YT_KEY = process.env.YOUTUBE_API_KEY
@@ -59,40 +60,14 @@ export async function ytSelect(query: string): Promise<Song | undefined> {
 
 export async function ytSuggestions(reference: Song): Promise<Array<Song>> {
 	try {
-		let youtubeId
-		if (reference.isYtMusic) {
-			const query = reference.title + (!!reference.artists && reference.artists.length > 0 ? ' ' + reference.artists[ 0 ].name : '') + ' official audio'
-			console.log('suggestion query', query)
-			const r = await axios.get('https://www.googleapis.com/youtube/v3/search', {
-				params: {
-					'q': query,
-					'type': 'video',
-					'videoCategoryId': '10',
-					'regionCode': 'id',
-					'videoDuration': 'short',
-					'part': 'snippet',
-					'maxResults': '20',
-					'key': YT_KEY,
-				},
-			})
 
-			for (let i = 0; i < r.data.items.length; i++) {
-				const search = r.data.items[ i ]
-				if (search.snippet) {
-					youtubeId = search.id.videoId
-					console.log('Got', search)
-					break
-				}
-			}
-		} else {
-			youtubeId = reference.youtubeId
-		}
-
+		const youtubeId = reference.youtubeId
 		const r2 = await axios.get('https://www.googleapis.com/youtube/v3/search', {
 			params: {
 				'relatedToVideoId': youtubeId,
 				'type': 'video',
 				'videoCategoryId': '10',
+				'topicId': '/m/04rlf',
 				'regionCode': 'id',
 				'videoDuration': 'short',
 				'part': 'snippet',
@@ -156,7 +131,7 @@ export async function ytSuggestions(reference: Song): Promise<Array<Song>> {
 				}
 			}
 
-			console.log('Autoplay', songs.length)
+			console.log('Autoplay', songs)
 			return songs
 		}
 
@@ -171,46 +146,33 @@ export async function ytSearch(query): Promise<Song[]> {
 	const songs = []
 	query = query + ' official audio'
 	console.log('suggestion query', query)
-	const r = await axios.get('https://www.googleapis.com/youtube/v3/search', {
-		params: {
-			'q': query,
-			'type': 'video',
-			'videoCategoryId': '10',
-			'regionCode': 'id',
-			'videoDuration': 'short',
-			'part': 'snippet',
-			'maxResults': '10',
-			'topicId': '/m/04rlf',
-			'key': YT_KEY,
-		},
-	})
 
-	for (let i = 0; i < r.data.items.length; i++) {
-		const search = r.data.items[ i ]
-		if (search.snippet) {
-			console.log('Got', search)
-			const snippet = search.snippet
-			const song = new Song()
-			song.title = snippet.title
-			song.youtubeId = search.id?.videoId
-			song.isSuggestion = true
-			for (let key in snippet.thumbnails) {
-				song.thumbnailUrl = snippet.thumbnails[ key ].url
-				break
+	try {
+		const results: any = await searchVideo(query)
+
+		for (let i = 0; i < results.length; i++) {
+			const search = results[ i ]
+			if (search.snippet) {
+				console.log('Got', search)
+				const snippet = search.snippet
+				const song = new Song()
+				song.title = snippet.title
+				song.youtubeId = search.id?.videoId
+				song.isSuggestion = true
+				song.thumbnailUrl = snippet.thumbnails?.url
+				song.artists = []
+				song.duration = {
+					label: snippet?.duration,
+					totalSeconds: 0,
+				}
+				songs.push(song)
 			}
-			song.artists = [{
-				name: snippet.channelTitle,
-				id: snippet.channelId,
-			}]
-			song.duration = {
-				label: moment.utc(Number(0) * 1000).format('m:s'),
-				totalSeconds: 0,
-			}
-			songs.push(song)
 		}
-	}
 
-	console.log(songs)
+		console.log(songs)
+	} catch (e) {
+		console.error(e)
+	}
 
 	return songs
 }
@@ -221,14 +183,13 @@ export async function ytRetrieve(ytId): Promise<Song[]> {
 		params: {
 			'id': ytId,
 			'key': YT_KEY,
-			'part': 'snippet'
+			'part': 'snippet',
 		},
 	})
 
 	for (let i = 0; i < r.data.items.length; i++) {
 		const search = r.data.items[ i ]
 		if (search.snippet) {
-			console.log('Got', search)
 			const snippet = search.snippet
 			const song = new Song()
 			song.title = snippet.title

@@ -64,7 +64,6 @@ export default class PlaylistManager {
 		}
 
 		const suggested = await ytSuggestions(song)
-		console.log('suggested', suggested)
 		if (!!suggested && suggested.length > 0) {
 			this.autoplay = suggested
 		}
