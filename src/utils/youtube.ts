@@ -179,7 +179,8 @@ export async function ytSearch(query): Promise<Song[]> {
 			'regionCode': 'id',
 			'videoDuration': 'short',
 			'part': 'snippet',
-			'maxResults': '20',
+			'maxResults': '10',
+			'topicId': '/m/04rlf',
 			'key': YT_KEY,
 		},
 	})
@@ -208,6 +209,8 @@ export async function ytSearch(query): Promise<Song[]> {
 			songs.push(song)
 		}
 	}
+
+	console.log(songs)
 
 	return songs
 }

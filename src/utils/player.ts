@@ -199,7 +199,7 @@ export class Player {
 				console.log('Job finished')
 				this.status = 'stopped'
 				await request('/set-status', { status: this.status })
-				await this.sendMsg('Song not loaded! Please add a song using command `/a your keyword or video link`')
+				await this.sendMsg('Song not loaded! Please add a song using command `/a your keyword or video link`', interaction)
 				this.timestamp = (new Date()).getTime()
 				return
 			}
@@ -334,7 +334,7 @@ export class Player {
 				const title = l.title
 				const artistName = l.artists && l.artists.length ? '- ' + l.artists[ 0 ].name : ''
 				const decoratorMsg = l.isExplicit ? '💢 ' : l.isYtMusic ? '🎯 ' : '😐 '
-				const label = `${ decoratorMsg }${ title } ${ artistName }`
+				const label = `${ decoratorMsg }${ title.replace('\\', '') } ${ artistName.replace('\\', '') }`
 				opts.push({ label: label.substring(0, 60), value: String(i) })
 			} catch (e) {
 				console.error(e)

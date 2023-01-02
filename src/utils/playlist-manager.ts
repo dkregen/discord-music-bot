@@ -123,6 +123,8 @@ export default class PlaylistManager {
 			if (hasAutoplay || hasUnplayedAutoplay) {
 				return d(this.autoplay[ hasUnplayedAutoplay ? 0 : 1 ])
 			}
+
+			throw 'empty!'
 		} catch (e) {
 			console.error(e)
 			return err('Playlist is empty!')
@@ -188,7 +190,7 @@ export default class PlaylistManager {
 
 			return s('', songs)
 		} catch (e) {
-			console.error(e)
+			console.error(e.response.data.error)
 			return err('Cannot find the song. Please provide the keywords!')
 		}
 	}
