@@ -49,7 +49,7 @@ export class Spotify {
 				song.isSuggestion = true
 				song.isExplicit = Boolean(t.explicit)
 				song.album = t.album?.name
-				song.thumbnailUrl = t.album?.images ? t.album.images[t.album.images.length - 1].url : 'https://f4.bcbits.com/img/a4139357031_10.jpg'
+				song.thumbnailUrl = t.album?.images?.url ? t.album.images[t.album.images.length - 1].url : 'https://f4.bcbits.com/img/a4139357031_10.jpg'
 				const durationSeconds = Math.floor(Number(t.duration_ms) / 1000)
 				song.duration = { label: moment.utc(t.duration_ms).format('m:s'), totalSeconds: durationSeconds }
 				songs.push(song)
