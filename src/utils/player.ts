@@ -216,7 +216,7 @@ export class Player {
 			this.attempt = 0
 			this.timestamp = (new Date()).getTime()
 			this.startDurationWatcher(this.nowPlaying.youtubeId).then()
-			const decoratorMsg = this.nowPlaying.isExplicit ? '💢 ' : this.nowPlaying.isYtMusic ? '🎯 ' : !this.nowPlaying.requestBy ? '🤖 ' : '😐 '
+			const decoratorMsg = this.nowPlaying.isExplicit ? '💢 ' : this.nowPlaying.isYtMusic ? '🎯 ' : this.nowPlaying.isSuggestion ? '🤖 ' : '🎞️ '
 
 			let artist = ''
 			if ((this.nowPlaying.isYtMusic || this.nowPlaying.isSpotify) && this.nowPlaying.artists.length) {
@@ -334,7 +334,7 @@ export class Player {
 			try {
 				const title = l.title
 				const artistName = l.artists && l.artists.length ? '- ' + l.artists[ 0 ].name : ''
-				const decoratorMsg = l.isExplicit ? '💢 ' : l.isYtMusic ? '🎯 ': !l.requestBy ? '🤖 ' : '😐 '
+				const decoratorMsg = l.isExplicit ? '💢 ' : l.isYtMusic ? '🎯 ' : '🎞️ '
 				const label = `${ decoratorMsg }${ title.replace('\\', '') } ${ artistName.replace('\\', '') }`
 				opts.push({ label: label.substring(0, 60), value: String(i) })
 			} catch (e) {
@@ -374,6 +374,7 @@ export class Player {
 			const avatar = interaction.user.avatar
 			const nowPlayingId = this.nowPlaying ? this.nowPlaying.youtubeId : ''
 			const selectedSong = index >= 0 && this.suggestions.length ? this.suggestions[ index ] : undefined
+			selectedSong.isSuggestion = false
 			console.log(selectedSong)
 			const r = await request('/add', { query, username, id, avatar, nowPlayingId, selectedSong })
 
