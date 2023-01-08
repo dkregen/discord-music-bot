@@ -1,4 +1,4 @@
-import { EmbedBuilder, ButtonStyle, Embed } from 'discord.js'
+import { EmbedBuilder, ButtonStyle } from 'discord.js'
 import Song from './song'
 import { err, Res } from './res'
 import axios from 'axios'
@@ -31,7 +31,7 @@ export function embedAddedSong(song: Song, msg: string): EmbedBuilder {
 	const urlMedia = `https://www.youtube.com/watch?v=${ song.youtubeId }`
 	const urlIcon = `https://ui-avatars.com/api/?background=random&name=${ encodeURIComponent(artist) }`
 	const urlArtist = `https://music.youtube.com/channel/${ artistId }`
-	const decoratorMsg = song.isExplicit ? '💢' : song.isYtMusic ? '🎯' : '😐'
+	const decoratorMsg = song.isExplicit ? '💢' : song.isYtMusic ? '🎯' : !song.requestBy ? '🤖' : '😐'
 	const embed = new EmbedBuilder()
 		.setTitle(song.title)
 		.setURL(urlMedia)
@@ -45,6 +45,8 @@ export function embedAddedSong(song: Song, msg: string): EmbedBuilder {
 
 	if(song.isYtMusic) {
 		embed.setColor('#c3352e')
+	} else if(song.isSpotify) {
+		embed.setColor('#1DB954')
 	}
 
 	return embed
@@ -52,7 +54,8 @@ export function embedAddedSong(song: Song, msg: string): EmbedBuilder {
 
 export function embedNowPlaying(song: Song): EmbedBuilder {
 	const artistName = (song.artists.length ? song.artists[ 0 ].name : 'Youtube')
-	const decoratorMsg = song.isExplicit ? '💢' : song.isYtMusic ? '🎯' : '😐'
+	const decoratorMsg = song.isExplicit ? '💢' : song.isYtMusic ? '🎯' : !song.requestBy ? '🤖' : '😐'
+	console.log(song.thumbnailUrl, song.title, `https://www.youtube.com/watch?v=${ song.youtubeId }`, `https://ui-avatars.com/api/?background=random&name=${ artistName.split(' ').join('+') }`, `https://music.youtube.com/channel/${ song.artists.length ? song.artists[ 0 ].name : 0 }`)
 	const embed = new EmbedBuilder()
 		.setTitle(song.title)
 		.setURL(`https://www.youtube.com/watch?v=${ song.youtubeId }`)
@@ -75,6 +78,8 @@ export function embedNowPlaying(song: Song): EmbedBuilder {
 
 	if(song.isYtMusic) {
 		embed.setColor('#c3352e')
+	} else if(song.isSpotify) {
+		embed.setColor('#1DB954')
 	}
 
 	return embed
@@ -150,4 +155,45 @@ export function embedLyrics(o: { author: string, title: string, content: string 
 		})
 
 	return { msg: 'Found the lyrics!', embed }
+}
+
+export function similarity(s1, s2) {
+	var longer = s1;
+	var shorter = s2;
+	if (s1.length < s2.length) {
+		longer = s2;
+		shorter = s1;
+	}
+	var longerLength = longer.length;
+	if (longerLength == 0) {
+		return 1.0;
+	}
+	return (longerLength - editDistance(longer, shorter)) / parseFloat(longerLength);
+}
+
+function editDistance(s1, s2) {
+	s1 = s1.toLowerCase();
+	s2 = s2.toLowerCase();
+
+	var costs = new Array();
+	for (var i = 0; i <= s1.length; i++) {
+		var lastValue = i;
+		for (var j = 0; j <= s2.length; j++) {
+			if (i == 0)
+				costs[j] = j;
+			else {
+				if (j > 0) {
+					var newValue = costs[j - 1];
+					if (s1.charAt(i - 1) != s2.charAt(j - 1))
+						newValue = Math.min(Math.min(newValue, lastValue),
+							costs[j]) + 1;
+					costs[j - 1] = lastValue;
+					lastValue = newValue;
+				}
+			}
+		}
+		if (i > 0)
+			costs[s2.length] = lastValue;
+	}
+	return costs[s2.length];
 }

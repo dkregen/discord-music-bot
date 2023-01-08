@@ -30,6 +30,7 @@ export default class Song {
 			this.colors = r.colors || []
 			this.requestBy = r.requestBy || undefined
 			this.isYtMusic = r.isYtMusic || false
+			this.isSpotify = r.isSpotify || false
 			this.isSuggestion = r.isSuggestion || false
 			this.spotifyLink = r.spotifyLink || false
 		}

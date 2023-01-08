@@ -5,10 +5,9 @@ import {
 	joinVoiceChannel,
 	VoiceConnection, VoiceConnectionStatus,
 } from '@discordjs/voice'
-import { embedAddedSong, embedLyrics, embedNowPlaying, embedPlaylist, isValidHttpUrl, request, sleep } from './common'
+import { embedAddedSong, embedLyrics, embedNowPlaying, embedPlaylist, request, sleep } from './common'
 import Song from './song'
 import { findLyrics } from './lyrics'
-import url from 'url'
 
 const MESSAGE_CHANNEL_ID = process.env.GROUP_MESSAGE_CHANNEL_ID || ''
 
@@ -217,10 +216,10 @@ export class Player {
 			this.attempt = 0
 			this.timestamp = (new Date()).getTime()
 			this.startDurationWatcher(this.nowPlaying.youtubeId).then()
-			const decoratorMsg = this.nowPlaying.isExplicit ? '💢 ' : this.nowPlaying.isYtMusic ? '🎯 ' : '😐 '
+			const decoratorMsg = this.nowPlaying.isExplicit ? '💢 ' : this.nowPlaying.isYtMusic ? '🎯 ' : !this.nowPlaying.requestBy ? '🤖 ' : '😐 '
 
 			let artist = ''
-			if (this.nowPlaying.isYtMusic && this.nowPlaying.artists.length) {
+			if ((this.nowPlaying.isYtMusic || this.nowPlaying.isSpotify) && this.nowPlaying.artists.length) {
 				artist = this.nowPlaying.artists[ 0 ].name + ' - '
 			}
 
@@ -238,6 +237,8 @@ export class Player {
 			const embed = new EmbedBuilder().setDescription(msg2)
 			if (this.nowPlaying.isYtMusic) {
 				embed.setColor('#c3352e')
+			}  else if(this.nowPlaying.isSpotify) {
+				embed.setColor('#1DB954')
 			}
 
 			await this.sendEmbedMsg(embed, msg1, interaction)
@@ -333,7 +334,7 @@ export class Player {
 			try {
 				const title = l.title
 				const artistName = l.artists && l.artists.length ? '- ' + l.artists[ 0 ].name : ''
-				const decoratorMsg = l.isExplicit ? '💢 ' : l.isYtMusic ? '🎯 ' : '😐 '
+				const decoratorMsg = l.isExplicit ? '💢 ' : l.isYtMusic ? '🎯 ': !l.requestBy ? '🤖 ' : '😐 '
 				const label = `${ decoratorMsg }${ title.replace('\\', '') } ${ artistName.replace('\\', '') }`
 				opts.push({ label: label.substring(0, 60), value: String(i) })
 			} catch (e) {

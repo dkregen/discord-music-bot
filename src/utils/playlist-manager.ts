@@ -4,10 +4,12 @@ import { isValidHttpUrl, sleep } from './common'
 import { Res, err, s, d } from './res'
 import * as url from 'url'
 import { searchMusics } from 'node-youtube-music'
+import { Spotify } from './spotify'
 
 export default class PlaylistManager {
 
-	private isAutoplay: boolean
+	private spotify = new Spotify()
+	private isAutoplay: boolean = true
 	private status: 'playing' | 'idle' | 'paused' | 'stopped' = 'stopped'
 	private cache: Song
 	private npIdCache: string
@@ -42,10 +44,10 @@ export default class PlaylistManager {
 		return this.autoplay
 	}
 
-	private get activeSong(): Song {
+	private async getActiveSong(): Promise<Song | undefined> {
 
 		const l = this.getUsedList()
-		const song = !!l && l.length > 0 ? l[ 0 ] : null
+		let song = !!l && l.length > 0 ? l[ 0 ] : undefined
 		if (!!song) {
 			this.cache = song
 		}
@@ -58,12 +60,14 @@ export default class PlaylistManager {
 			await sleep(2000)
 		}
 
-		const song = (!!this.queues && this.queues.length > 0 ? this.queues[ this.queues.length - 1 ] : !!this.activeSong ? this.activeSong : this.cache)
-		if (!song) {
+		const activeSong = await this.getActiveSong()
+		const song = (!!this.queues && this.queues.length > 0 ? this.queues[ this.queues.length - 1 ] : !!activeSong ? activeSong : this.cache)
+		if (!song && !song.artists.length) {
 			return false
 		}
 
-		const suggested = await ytSuggestions(song)
+		const suggested = await this.spotify.getRecommendation(song.artists[ 0 ].name)
+		console.log('SUGGGGGGGGGGGGGGGGGGGGGGGGGGGG',suggested)
 		if (!!suggested && suggested.length > 0) {
 			this.autoplay = suggested
 		}
@@ -120,6 +124,21 @@ export default class PlaylistManager {
 			const hasAutoplay = !!this.autoplay && this.autoplay.length > 1
 			const hasUnplayedAutoplay = !!this.autoplay && this.autoplay.length > 0 && npId !== this.autoplay[ 0 ].youtubeId
 			if (hasAutoplay || hasUnplayedAutoplay) {
+				let song: Song | null = null
+				while (!song && this.autoplay.length) {
+					song = (this.autoplay[ hasUnplayedAutoplay ? 0 : 1 ])
+					if (!song.youtubeId) {
+						const s = await ytSelect(song.title + ' ' + song.artists.length ? song.artists[0].name : '', song.title)
+						if(!!s && !!s.youtubeId) {
+							console.log(song.title+'+'+song.artists[0].name,s.title+'+'+s.artists[0].name)
+							song.youtubeId = s.youtubeId
+						} else {
+							this.autoplay.splice(hasUnplayedAutoplay ? 0 : 1, 1)
+							await this.refreshAutoplay()
+							song = null
+						}
+					}
+				}
 				return d(this.autoplay[ hasUnplayedAutoplay ? 0 : 1 ])
 			}
 
@@ -130,8 +149,8 @@ export default class PlaylistManager {
 		}
 	}
 
-	public nowPlaying(): Res {
-		const np = this.activeSong
+	public async nowPlaying(): Promise<Res> {
+		const np = await this.getActiveSong()
 		return np ? d(np) : err('Empty list.')
 	}
 
@@ -250,8 +269,11 @@ export default class PlaylistManager {
 			const nInARow = isInARow ? inARow.index - (!!list && list.length > 1 && list[ 0 ].youtubeId === nowPlayingId ? 1 : 0) : 0
 			const far = (isInARow ? (nInARow) : n - 1)
 			const msg = far < 1 ? '`Up next.`' : '`' + far + ' song' + (far > 2 ? 's' : '') + ' away.`'
-			this.autoplay.splice(0, this.autoplay.length)
-			this.autoplay = []
+			if (q.isYtMusic && !(await this.spotify.isArtistIncluded(q.artists[ 0 ]?.name))) {
+				this.autoplay.splice(0, this.autoplay.length)
+				this.autoplay = []
+			}
+
 			return s(msg, { ...q, info })
 
 		} catch (e) {
@@ -292,8 +314,9 @@ export default class PlaylistManager {
 	async setAutoplay(state: 'on' | 'off'): Promise<Res> {
 		this.isAutoplay = state === 'on'
 		console.log('Autoplay', state)
+		const activeSong = await this.getActiveSong()
 		if (this.isAutoplay) {
-			if (!this.activeSong || !this.activeSong.youtubeId || this.activeSong.youtubeId === '') {
+			if (!activeSong || !activeSong.youtubeId || activeSong.youtubeId === '') {
 				return s('In order to activate Autoplay, please add at least 1 song as recommendation')
 			}
 
@@ -388,12 +411,13 @@ export default class PlaylistManager {
 		return s()
 	}
 
-	public getData(): Res {
+	public async getData(): Promise<Res> {
+		const activeSong = await this.getActiveSong()
 		return d({
 			isAutoplay: this.isAutoplay,
 			status: this.status,
 			maxLength: this.maxLength,
-			nowPlaying: this.activeSong || null,
+			nowPlaying: activeSong || null,
 		})
 	}
 

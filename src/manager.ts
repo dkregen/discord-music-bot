@@ -208,7 +208,7 @@ app.get('/rm', async (req, res) => {
 
 app.get('/data', async (req, res) => {
 	try {
-		const r = playlist.getData()
+		const r = await playlist.getData()
 		console.log('/data', r)
 		res.status(r.code).json(r)
 	} catch (e) {

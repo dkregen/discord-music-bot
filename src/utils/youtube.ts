@@ -3,7 +3,7 @@ import * as ytdl from 'ytdl-core'
 import { YTvideo } from 'ytfps/out/interfaces'
 import { searchMusics } from 'node-youtube-music'
 import axios from 'axios'
-import { shuffle } from './common'
+import { shuffle, similarity } from './common'
 import * as moment from 'moment/moment'
 import { searchVideo } from './youtube-parser'
 
@@ -43,13 +43,24 @@ export async function ytRetrievePlaylist(youtubeId: string, isShuffle: boolean):
 	}
 }
 
-export async function ytSelect(query: string): Promise<Song | undefined> {
+export async function ytSelect(query: string, preparedTitle?: string): Promise<Song | undefined> {
 	try {
 		const r = await searchMusics(query)
 		if (r.length > 0) {
-			const song = new Song(r[ 0 ])
-			song.isYtMusic = true
-			return song
+			if (!preparedTitle) {
+				const song = new Song(r[ 0 ])
+				song.isYtMusic = true
+				return song
+			} else {
+				for (const s of r) {
+					const song = new Song(s)
+					const similarIndex = similarity(song.title, preparedTitle)
+					console.log(song.title, similarIndex)
+					if (similarIndex > 0.6) {
+						return song
+					}
+				}
+			}
 		}
 	} catch (e) {
 		console.error(e)
