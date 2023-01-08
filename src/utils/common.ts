@@ -3,7 +3,7 @@ import Song from './song'
 import { err, Res } from './res'
 import axios from 'axios'
 
-const DEFAULT_URL = 'http://localhost:3000'
+const DEFAULT_URL = 'http://localhost:'+process.env.MANAGER_PORT
 
 export function sleep(ms: number) {
 	return new Promise((res) => {

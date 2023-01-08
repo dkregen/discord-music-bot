@@ -3,7 +3,7 @@ import { s } from './utils/res'
 import PlaylistManager from './utils/playlist-manager'
 
 const app = express()
-const port = 3000
+const port = process.env.MANAGER_PORT
 const playlist = new PlaylistManager()
 
 app.get('/ping', (req, res) => {
