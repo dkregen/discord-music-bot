@@ -19,7 +19,7 @@ export class Spotify {
 				const api = new SpotifyWebApi(credential)
 				const token = await api.clientCredentialsGrant()
 				this.accessToken = token.body[ 'access_token' ]
-				this.accessTokenValidUntil = nextTime(3500 * 1000, (new Date()).getTime())
+				this.accessTokenValidUntil = nextTime(3000, (new Date()).getTime())
 			} catch (e) {
 				console.error(e)
 			}
