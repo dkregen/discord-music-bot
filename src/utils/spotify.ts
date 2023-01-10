@@ -19,7 +19,7 @@ export class Spotify {
 				const api = new SpotifyWebApi(credential)
 				const token = await api.clientCredentialsGrant()
 				this.accessToken = token.body[ 'access_token' ]
-				this.accessTokenValidUntil = nextTime(3000, (new Date()).getTime())
+				this.accessTokenValidUntil = nextTime(100, (new Date()).getTime())
 			} catch (e) {
 				console.error(e)
 			}
@@ -31,9 +31,17 @@ export class Spotify {
 	public async getRecommendation(artistName: string): Promise<Song[]> {
 		const api = new SpotifyWebApi()
 		api.setAccessToken(await this.getToken())
-		const rs = await api.searchArtists(artistName)
-		const artist = rs.body.artists.items[ 0 ].id
-		if (!this.artists.includes(artist)) {
+		let artist = undefined
+
+		try {
+			const rs = await api.searchArtists(artistName)
+			artist = rs.body.artists.items[ 0 ].id
+		} catch (e) {
+			console.error('api.searchArtists', this.artists, artistName, e)
+			return []
+		}
+
+		if (!!artist && !this.artists.includes(artist)) {
 			this.artists.push(artist)
 			while (this.artists.length > 5) {
 				this.artists.splice(0, 1)
@@ -59,7 +67,7 @@ export class Spotify {
 
 				return songs
 			} catch (e) {
-				console.error(e)
+				console.error('api.getRecommendations', this.artists, e)
 				return []
 			}
 		}
@@ -68,11 +76,16 @@ export class Spotify {
 	}
 
 	public async isArtistIncluded(artistName: string): Promise<boolean> {
-		const api = new SpotifyWebApi()
-		api.setAccessToken(await this.getToken())
-		const rs = await api.searchArtists(artistName)
-		const artist = rs.body.artists.items[ 0 ].id
-		if (this.artists.includes(artist)) {
+		try {
+			const api = new SpotifyWebApi()
+			api.setAccessToken(await this.getToken())
+			const rs = await api.searchArtists(artistName)
+			const artist = rs.body.artists.items[ 0 ].id
+			if (this.artists.includes(artist)) {
+				return true
+			}
+		} catch (e) {
+			console.error('api.searchArtists', artistName, e)
 			return true
 		}
 
