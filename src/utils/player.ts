@@ -210,6 +210,18 @@ export class Player {
 
 			this.join()
 			this.nowPlaying = hasRestored ? this.nowPlaying : this.upcoming
+
+			let tryIndex = 0
+			while (!this.nowPlaying.audioResource && tryIndex) {
+				await this.nowPlaying.generateAudioResource()
+				tryIndex++
+			}
+
+			if(!this.nowPlaying.audioResource) {
+				await this.genUpcoming(false, this.nowPlaying.youtubeId)
+				return this.play(interaction, isSkip)
+			}
+
 			console.log('NOW PLAYING', this.nowPlaying)
 			this.PLAYER.play(this.nowPlaying.audioResource)
 			this.upcoming = null
@@ -237,7 +249,7 @@ export class Player {
 			const embed = new EmbedBuilder().setDescription(msg2)
 			if (this.nowPlaying.isYtMusic) {
 				embed.setColor('#c3352e')
-			}  else if(this.nowPlaying.isSpotify) {
+			} else if (this.nowPlaying.isSpotify) {
 				embed.setColor('#1DB954')
 			}
 
