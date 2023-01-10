@@ -50,6 +50,9 @@ export default class PlaylistManager {
 		let song = !!l && l.length > 0 ? l[ 0 ] : undefined
 		if (!!song) {
 			this.cache = song
+		} else if (this.isAutoplay) {
+			await this.refreshAutoplay()
+			return await this.getActiveSong()
 		}
 
 		return song
@@ -67,7 +70,7 @@ export default class PlaylistManager {
 		}
 
 		const suggested = await this.spotify.getRecommendation(song.artists[ 0 ].name)
-		console.log('SUGGGGGGGGGGGGGGGGGGGGGGGGGGGG',suggested)
+		console.log('SUGGGGGGGGGGGGGGGGGGGGGGGGGGGG', suggested)
 		if (!!suggested && suggested.length > 0) {
 			this.autoplay = suggested
 		}
@@ -128,9 +131,9 @@ export default class PlaylistManager {
 				while (!song && this.autoplay.length) {
 					song = (this.autoplay[ hasUnplayedAutoplay ? 0 : 1 ])
 					if (!song.youtubeId) {
-						const s = await ytSelect(song.title + ' ' + song.artists.length ? song.artists[0].name : '', song.title)
-						if(!!s && !!s.youtubeId) {
-							console.log(song.title+'+'+song.artists[0].name,s.title+'+'+s.artists[0].name)
+						const s = await ytSelect(song.title + ' ' + song.artists.length ? song.artists[ 0 ].name : '', song.title)
+						if (!!s && !!s.youtubeId) {
+							console.log(song.title + '+' + song.artists[ 0 ].name, s.title + '+' + s.artists[ 0 ].name)
 							song.youtubeId = s.youtubeId
 						} else {
 							this.autoplay.splice(hasUnplayedAutoplay ? 0 : 1, 1)
@@ -140,6 +143,9 @@ export default class PlaylistManager {
 					}
 				}
 				return d(this.autoplay[ hasUnplayedAutoplay ? 0 : 1 ])
+			} else if (this.isAutoplay) {
+				await this.refreshAutoplay()
+				return await this.nextSong(npId)
 			}
 
 			throw 'empty!'
