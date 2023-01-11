@@ -38,8 +38,12 @@ export class Spotify {
 			const rs = await api.searchArtists(artistName)
 			for (const a of rs.body.artists.items) {
 				if(similarity(a.name, artistName) === 1) {
-					artist = a.id
-					break
+					if(a.images.length && a.images[0].url) {
+						if(a.popularity >= 45) {
+							artist = a.id
+							break
+						}
+					}
 				}
 			}
 
