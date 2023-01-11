@@ -161,10 +161,10 @@ export default class PlaylistManager {
 			return err('Cannot find the song. Please provide the keywords!')
 		}
 
+		let val = undefined
 		let rs2 = null
 		if (isValidHttpUrl(query)) {
 
-			let val = undefined
 			if (query.includes('youtu.be')) {
 				const urlParts = query.split('/')
 				val = urlParts[ urlParts.length - 1 ]
@@ -188,15 +188,18 @@ export default class PlaylistManager {
 
 		try {
 			const rs = await searchMusics(query)
-			const songs = []
+			let songs = []
 			let i = 0
+			let isGotOriginal: boolean
 			for (const s of rs) {
 				i++
 				const song = new Song(s)
 				song.isYtMusic = true
-				songs.push(song)
-				if (i >= 5) {
-					break
+				if (song.youtubeId === val) {
+					isGotOriginal = true
+					songs.splice(0, 0, song)
+				} else {
+					songs.push(song)
 				}
 			}
 
@@ -204,8 +207,12 @@ export default class PlaylistManager {
 				rs2 = await ytSearch(query)
 			}
 
+			songs = songs.slice(0, 5)
 			for (const s2 of rs2) {
-				songs.push(s2)
+				const song = new Song(s2)
+				if (song.youtubeId !== val || !isGotOriginal) {
+					songs.push(s2)
+				}
 			}
 
 			return s('', songs)
