@@ -25,6 +25,9 @@ export class Player {
 	private status: 'playing' | 'paused' | 'stopped' = 'stopped'
 	private isConnected: boolean
 	private attempt: number
+	private isSkipping: boolean
+	private isGenerating: boolean
+	private isWaitingUpcomingAfterPlay: string
 	private playlist: Array<Song>
 	private suggestions: Array<Song> = []
 
@@ -85,26 +88,48 @@ export class Player {
 		}
 
 		if (currentYoutubeId && !!this.nowPlaying && this.nowPlaying.youtubeId !== currentYoutubeId) {
-			return
+			return false
 		}
 
-		const r = await request('/up-next', { youtubeId: this.nowPlaying ? this.nowPlaying.youtubeId : '' })
-		if (r.isOk() && r.data) {
-			const song = new Song(r.data)
-			const isSame = !!this.upcoming && (!this.upcoming.audioResource || song.youtubeId !== this.upcoming.youtubeId)
-			this.upcoming = song
-			if (!isSame) {
-				const isGenerated = await this.upcoming.generateAudioResource()
-				if (!isGenerated) {
-					await this.removeByYtId(this.upcoming.youtubeId)
-					this.upcoming = undefined
-					return await this.genUpcoming(false, currentYoutubeId)
+		if (this.isGenerating) {
+			return false
+		}
+
+		if (isSleep && !this.isWaitingUpcomingAfterPlay) {
+			return false
+		}
+
+		try {
+			this.isGenerating = true
+			const r = await request('/up-next', { youtubeId: this.nowPlaying ? this.nowPlaying.youtubeId : '' })
+			if (r.isOk() && r.data) {
+				const song = new Song(r.data)
+				this.upcoming = song
+				if (!this.upcoming.audioResource) {
+					let isGenerated: boolean
+					let trialCount = 1
+					while (!isGenerated && trialCount <= 5) {
+						console.log('Generating Audio Resource...')
+						isGenerated = await this.upcoming.generateAudioResource()
+						console.log('Generating audio resource, done.', isGenerated)
+						trialCount++
+					}
+
+					if (!isGenerated) {
+						await this.removeByYtId(this.upcoming.youtubeId)
+						this.upcoming = undefined
+						return await this.genUpcoming(false, currentYoutubeId)
+					}
 				}
-			}
 
-			return true
+				this.isGenerating = false
+				return true
+			}
+		} catch (e) {
+			console.error(e)
 		}
 
+		this.isGenerating = false
 		return false
 	}
 
@@ -177,7 +202,7 @@ export class Player {
 		return !!r.data && !!r.data.isAllAdmin
 	}
 
-	public async play(interaction?: any, isSkip?: boolean) {
+	public async play(interaction?: any, isSkip?: boolean, trial?: number) {
 		try {
 
 			const isPlaying = this.status === 'playing' && this.nowPlaying
@@ -188,12 +213,8 @@ export class Player {
 
 			let hasUpcoming = !!this.upcoming
 			const hasRestored = (this.status === 'stopped' && !!this.nowPlaying)
-			if (!hasUpcoming && !hasRestored) {
-				await this.restoreNowPlaying()
-				await this.genUpcoming()
-			}
 
-			hasUpcoming = !!this.upcoming
+			console.log(hasUpcoming, hasRestored)
 			if (!hasRestored && !hasUpcoming) {
 				console.log('Job finished')
 				this.status = 'stopped'
@@ -210,18 +231,6 @@ export class Player {
 
 			this.join()
 			this.nowPlaying = hasRestored ? this.nowPlaying : this.upcoming
-
-			let tryIndex = 0
-			while (!this.nowPlaying.audioResource && tryIndex <= 5) {
-				await this.nowPlaying.generateAudioResource()
-				tryIndex++
-			}
-
-			if(!this.nowPlaying.audioResource) {
-				await this.genUpcoming(false, this.nowPlaying.youtubeId)
-				return this.play(interaction, isSkip)
-			}
-
 			console.log('NOW PLAYING', this.nowPlaying)
 			this.PLAYER.play(this.nowPlaying.audioResource)
 			this.upcoming = null
@@ -256,15 +265,33 @@ export class Player {
 			await this.sendEmbedMsg(embed, msg1, interaction)
 			this.status = 'playing'
 			await request('/set-status', { status: this.status })
+
+			this.isWaitingUpcomingAfterPlay = this.nowPlaying.youtubeId
 			await this.genUpcoming(true, this.nowPlaying.youtubeId)
+			if (this.isWaitingUpcomingAfterPlay === this.nowPlaying.youtubeId) {
+				this.isWaitingUpcomingAfterPlay = undefined
+			}
 
 		} catch (e) {
 			console.error(e)
 			await this.sendMsg(`Cannot play the song, ${ this.attempt < 6 ? 'retrying . . .' : 'gave up!' }`, interaction)
 			await this.stop(interaction, true)
-			if (this.attempt < 6) {
-				await this.play(interaction)
-				this.attempt++
+			if (trial < 6) {
+				if (!!this.nowPlaying) {
+					console.log('Regenerating audio resource...')
+					const regen = await this.nowPlaying.generateAudioResource()
+					console.log('Regenerating audio resource, done', regen)
+				}
+
+				if (!!this.upcoming) {
+					console.log('Regenerating audio resource...')
+					const regen = await this.upcoming.generateAudioResource()
+					console.log('Regenerating audio resource, done', regen)
+				}
+
+				trial++
+				await sleep(1000)
+				await this.play(interaction, isSkip, trial)
 			} else {
 				await sleep(1000)
 				await this.next(interaction, isSkip)
@@ -291,21 +318,36 @@ export class Player {
 	}
 
 	public async next(interaction?: any, isSkip?: boolean) {
+		if (this.isSkipping || this.status !== 'playing') {
+			if (!!interaction) {
+				await this.sendMsg('Not Playing! Try again later!', interaction, true)
+			}
+			return
+		}
+
+		while (this.isGenerating) {
+			await sleep(1000)
+		}
+
 		try {
+			this.isSkipping = true
+			this.isWaitingUpcomingAfterPlay = undefined
+			console.log('Skipping!', this.isSkipping, this.nowPlaying.youtubeId)
 			this.PLAYER.stop()
 			this.status = 'paused'
 			const youtubeId = this.nowPlaying.youtubeId
-			if (isSkip) {
-				await this.sendMsg(`Skipped ${ this.nowPlaying.title }.`, interaction)
-			}
-			this.play(interaction, isSkip).then()
 			if (!!youtubeId) {
 				await this.removeByYtId(youtubeId)
 			}
+
+			this.play(interaction, isSkip, 0).then()
 		} catch (e) {
 			console.error(e)
 			await this.sendMsg('Cannot play next song, please try again!', interaction, true)
 		}
+
+		this.isSkipping = false
+		console.log('Skipping done!', this.isSkipping)
 	}
 
 	public async chooseSong(interaction1: any, interaction2: any) {

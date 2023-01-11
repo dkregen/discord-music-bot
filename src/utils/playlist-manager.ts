@@ -50,9 +50,6 @@ export default class PlaylistManager {
 		let song = !!l && l.length > 0 ? l[ 0 ] : undefined
 		if (!!song) {
 			this.cache = song
-		} else if (this.isAutoplay) {
-			await this.refreshAutoplay()
-			return await this.getActiveSong()
 		}
 
 		return song

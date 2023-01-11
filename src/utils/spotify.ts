@@ -1,6 +1,7 @@
 import { nextTime, timeAge } from './timer'
 import Song from './song'
 import * as moment from 'moment'
+import { similarity } from './common'
 
 const SpotifyWebApi = require('spotify-web-api-node')
 const credential = {
@@ -35,7 +36,13 @@ export class Spotify {
 
 		try {
 			const rs = await api.searchArtists(artistName)
-			artist = rs.body.artists.items[ 0 ].id
+			for (const a of rs.body.artists.items) {
+				if(similarity(a.name, artistName) === 1) {
+					artist = a.id
+					break
+				}
+			}
+
 		} catch (e) {
 			console.error('api.searchArtists', this.artists, artistName, e)
 			return []

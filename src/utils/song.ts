@@ -40,7 +40,7 @@ export default class Song {
 		return (!this.youtubeId || this.youtubeId === '') && (!this.spotifyLink || this.spotifyLink === '')
 	}
 
-	public async generateAudioResource(): Promise<Boolean> {
+	public async generateAudioResource(): Promise<boolean> {
 		try {
 			const url = `https://www.youtube.com/watch?v=${ this.youtubeId }`
 			let stream = await play.stream(url, { discordPlayerCompatibility: true })
