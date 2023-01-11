@@ -60,13 +60,16 @@ export default class PlaylistManager {
 			await sleep(2000)
 		}
 
+		let artistName = ''
 		const activeSong = await this.getActiveSong()
 		const song = (!!this.queues && this.queues.length > 0 ? this.queues[ this.queues.length - 1 ] : !!activeSong ? activeSong : this.cache)
-		if (!song && !song.artists.length) {
+		if (!song && !song.artists.length && !!this.autoplay && this.autoplay.length) {
 			return false
+		} else {
+			artistName = song.artists[ 0 ].name
 		}
 
-		const suggested = await this.spotify.getRecommendation(song.artists[ 0 ].name)
+		const suggested = await this.spotify.getRecommendation(artistName)
 		if (!!suggested && suggested.length > 0) {
 			this.autoplay = suggested
 		}
