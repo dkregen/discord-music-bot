@@ -29,34 +29,12 @@ export class Spotify {
 		return this.accessToken
 	}
 
-	public async getRecommendation(artistName: string): Promise<Song[]> {
+	public async getRecommendation(): Promise<Song[]> {
 		const api = new SpotifyWebApi()
 		api.setAccessToken(await this.getToken())
-		let artist = undefined
 
-		try {
-			const rs = await api.searchArtists(artistName)
-			for (const a of rs.body.artists.items) {
-				if (similarity(a.name, artistName) === 1) {
-					if (a.images.length && a.images[ 0 ].url) {
-						if (a.popularity >= 45) {
-							artist = a.id
-							break
-						}
-					}
-				}
-			}
-
-		} catch (e) {
-			console.error('api.searchArtists', this.artists, artistName, e)
+		if (!this.artists || !this.artists.length) {
 			return []
-		}
-
-		if (!!artist && !this.artists.includes(artist)) {
-			this.artists.push(artist)
-			while (this.artists.length > 5) {
-				this.artists.splice(0, 1)
-			}
 		}
 
 		try {
@@ -87,20 +65,30 @@ export class Spotify {
 		return []
 	}
 
-	public async isArtistIncluded(artistName: string): Promise<boolean> {
+	public async includeArtist(artistName: string): Promise<boolean> {
 		try {
 			const api = new SpotifyWebApi()
 			api.setAccessToken(await this.getToken())
 			const rs = await api.searchArtists(artistName)
-			const artist = rs.body.artists.items[ 0 ].id
-			if (this.artists.includes(artist)) {
-				return true
-			}
-		} catch (e) {
-			console.error('api.searchArtists', artistName, e)
-			return true
-		}
 
-		return false
+			for (const a of rs.body.artists.items) {
+				if (similarity(a.name, artistName) === 1) {
+					if (a.images.length && a.images[ 0 ].url) {
+						if (a.popularity >= 45) {
+							if (this.artists.includes(a.id)) {
+								return false
+							}
+
+							this.artists.push(a.id)
+							return true
+						}
+					}
+				}
+			}
+
+		} catch (e) {
+			console.error('api.searchArtists', this.artists, artistName, e)
+			return false
+		}
 	}
 }

@@ -20,6 +20,7 @@ export default class PlaylistManager {
 	private queues: Array<Song> = []
 	private autoplay: Array<Song> = []
 	private playlist: Array<Song> = []
+	private refreshAutoplayAttempt = 0
 
 	constructor() {
 	}
@@ -60,18 +61,16 @@ export default class PlaylistManager {
 			await sleep(2000)
 		}
 
-		let artistName = ''
 		const activeSong = await this.getActiveSong()
 		const song = (!!this.queues && this.queues.length > 0 ? this.queues[ this.queues.length - 1 ] : !!activeSong ? activeSong : this.cache)
 		if (!song && !song.artists.length && !!this.autoplay && this.autoplay.length) {
 			return false
-		} else {
-			artistName = song.artists[ 0 ].name
 		}
 
-		const suggested = await this.spotify.getRecommendation(artistName)
+		const suggested = await this.spotify.getRecommendation()
 		if (!!suggested && suggested.length > 0) {
-			this.autoplay = suggested
+			this.autoplay.splice(0, this.autoplay.length)
+			this.autoplay.push(...suggested)
 		}
 		return true
 	}
@@ -79,7 +78,7 @@ export default class PlaylistManager {
 	private async refreshAutoplay() {
 		const hasQueues = !!this.queues && this.queues.length > 1
 		const hasPlaylist = !!this.playlist && this.playlist.length > 1
-		const isEmptyAutoplay = this.isAutoplay && this.autoplay.length <= 1
+		const isEmptyAutoplay = !this.isAutoplay || this.autoplay.length <= 1
 		if (isEmptyAutoplay && (!hasPlaylist || !hasQueues)) {
 			await this.getSuggestion()
 		}
@@ -110,7 +109,6 @@ export default class PlaylistManager {
 			}
 
 			this.npIdCache = npId
-			await this.refreshAutoplay()
 			const hasQueues = !!this.queues && this.queues.length > 1
 			const hasUnplayedQueues = !!this.queues && this.queues.length > 0 && npId !== this.queues[ 0 ].youtubeId
 			if (hasQueues || hasUnplayedQueues) {
@@ -136,17 +134,22 @@ export default class PlaylistManager {
 							song.youtubeId = s.youtubeId
 						} else {
 							this.autoplay.splice(hasUnplayedAutoplay ? 0 : 1, 1)
-							await this.refreshAutoplay()
 							song = null
 						}
 					}
 				}
-				return d(this.autoplay[ hasUnplayedAutoplay ? 0 : 1 ])
-			} else if (this.isAutoplay) {
+				if (song) {
+					return d(song)
+				}
+			}
+
+			while (this.isAutoplay && !this.autoplay.length && this.refreshAutoplayAttempt < 5) {
+				this.refreshAutoplayAttempt++
 				await this.refreshAutoplay()
 				return await this.nextSong(npId)
 			}
 
+			this.refreshAutoplayAttempt = 0
 			throw 'empty!'
 		} catch (e) {
 			console.error(e)
@@ -281,9 +284,8 @@ export default class PlaylistManager {
 			const nInARow = isInARow ? inARow.index - (!!list && list.length > 1 && list[ 0 ].youtubeId === nowPlayingId ? 1 : 0) : 0
 			const far = (isInARow ? (nInARow) : n - 1)
 			const msg = far < 1 ? '`Up next.`' : '`' + far + ' song' + (far > 2 ? 's' : '') + ' away.`'
-			if (q.isYtMusic && !(await this.spotify.isArtistIncluded(q.artists[ 0 ]?.name))) {
+			if (q.isYtMusic && (await this.spotify.includeArtist(q.artists[ 0 ]?.name))) {
 				this.autoplay.splice(0, this.autoplay.length)
-				this.autoplay = []
 			}
 
 			return s(msg, { ...q, info })
@@ -417,8 +419,8 @@ export default class PlaylistManager {
 
 	public clearPlaylist(): Res {
 		this.queues = []
-		this.autoplay = []
 		this.playlist = []
+		this.autoplay.splice(0, this.autoplay.length)
 		console.log(this.queues, this.autoplay, this.playlist)
 		return s()
 	}
