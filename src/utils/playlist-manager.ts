@@ -70,7 +70,6 @@ export default class PlaylistManager {
 		}
 
 		const suggested = await this.spotify.getRecommendation(song.artists[ 0 ].name)
-		console.log('SUGGGGGGGGGGGGGGGGGGGGGGGGGGGG', suggested)
 		if (!!suggested && suggested.length > 0) {
 			this.autoplay = suggested
 		}

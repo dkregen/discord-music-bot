@@ -65,6 +65,7 @@ export class Spotify {
 					songs.push(song)
 				}
 
+				console.log('SUGGGG', this.artists, songs)
 				return songs
 			} catch (e) {
 				console.error('api.getRecommendations', this.artists, e)
