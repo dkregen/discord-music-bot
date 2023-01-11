@@ -212,7 +212,7 @@ export class Player {
 			this.nowPlaying = hasRestored ? this.nowPlaying : this.upcoming
 
 			let tryIndex = 0
-			while (!this.nowPlaying.audioResource && tryIndex) {
+			while (!this.nowPlaying.audioResource && tryIndex <= 5) {
 				await this.nowPlaying.generateAudioResource()
 				tryIndex++
 			}
